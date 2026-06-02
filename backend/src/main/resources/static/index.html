@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalpavant - Smart Restaurant Operating System</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- WebSockets STOMP libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+    <!-- Unified Restaurant Platform Wrapper -->
+    <div class="app-container">
+        
+        <!-- ================= PUBLIC HOME PAGE ================= -->
+        <section id="public-home-page" class="home-view active">
+            <!-- Scroll Parallax Background Hero -->
+            <div class="parallax-hero">
+                <div class="parallax-layer bg-layer" style="background-image: url('images/hotel_ambiance.png');"></div>
+                <div class="parallax-overlay"></div>
+                <div class="hero-content">
+                    <span class="hero-subtitle">WELCOME TO</span>
+                    <h1 class="hero-title animate-glow">HOTEL KALPAVANT</h1>
+                    <p class="hero-desc">Where Culinary Excellence Meets AI-Powered Smart Dining Operations</p>
+                    <div class="hero-buttons">
+                        <a href="#menu-showcase" class="btn btn-secondary"><i class="fa-solid fa-utensils"></i> Browse Menu</a>
+                        <button class="btn btn-primary" id="btn-enter-portal-gateway"><i class="fa-solid fa-door-open"></i> Access Digital SROS Portals</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Restaurant Story & Ambiance Showcase -->
+            <div class="home-container" id="about-section">
+                <div class="story-grid">
+                    <div class="story-text">
+                        <h2>Our Dining Philosophy</h2>
+                        <div class="divider"></div>
+                        <p>Hotel Kalpavant is a state-of-the-art culinary sanctuary. We blend premium local ingredients, authentic cooking traditions, and modern operational technologies to deliver delicious food with speed and precision.</p>
+                        <p>Every table is connected in real-time to our kitchen stations, eliminating long wait times and ensuring your order arrives exactly as you customized it.</p>
+                    </div>
+                    <div class="story-image-card">
+                        <img src="images/hotel_ambiance.png" alt="Ambiance">
+                        <div class="image-overlay-info">
+                            <h4>Luxurious Cozy Ambiance</h4>
+                            <p>Warm ambient lighting and comfortable seats for a premium experience.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cleanliness & Kitchen Standards Showcase -->
+            <div class="hygiene-banner" id="cleanliness-section">
+                <div class="home-container">
+                    <div class="story-grid reverse">
+                        <div class="story-image-card">
+                            <img src="images/clean_kitchen.png" alt="Clean Kitchen">
+                            <div class="image-overlay-info">
+                                <h4>Spotless Hygiene Standards</h4>
+                                <p>Strict sanitation and organized workspace for fresh culinary prep.</p>
+                            </div>
+                        </div>
+                        <div class="story-text">
+                            <h2>Kitchen Cleanliness & Sanitization</h2>
+                            <div class="divider"></div>
+                            <p>At Kalpavant, cleanliness is not an option; it is our foundation. Our professional kitchen operates under strict hygiene guidelines. All stainless steel workstations are sanitized, fresh ingredients are stored in airtight organized containers, and our chefs follow professional safety standards.</p>
+                            <div class="hygiene-badges">
+                                <span class="badge badge-success"><i class="fa-solid fa-shield-halved"></i> Sanitized Workspaces</span>
+                                <span class="badge badge-success"><i class="fa-solid fa-leaf"></i> Fresh Farm Ingredients</span>
+                                <span class="badge badge-success"><i class="fa-solid fa-soap"></i> Hourly Sanitation Audits</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature Menu Showcase -->
+            <div class="menu-showcase-section" id="menu-showcase">
+                <div class="home-container">
+                    <div class="section-center-title">
+                        <h2>Gourmet Signatures</h2>
+                        <div class="divider-center"></div>
+                        <p>Explore our highly recommended signature dishes crafted by expert chefs.</p>
+                    </div>
+                    
+                    <div class="signature-grid">
+                        <div class="sig-card">
+                            <img src="images/special_dish.png" alt="Paneer Tikka Masala">
+                            <div class="sig-card-body">
+                                <h3>Paneer Tikka Masala</h3>
+                                <p>Marinated premium cottage cheese cubes chargrilled and simmered in a rich tomato, onion, and cashew gravy.</p>
+                                <span class="sig-price">₹280.00</span>
+                            </div>
+                        </div>
+                        <div class="sig-card">
+                            <div class="sig-card-no-img" style="background: linear-gradient(135deg, #1e1b4b, #311042);">
+                                <i class="fa-solid fa-bread-slice" style="font-size: 40px; color: var(--color-warning);"></i>
+                            </div>
+                            <div class="sig-card-body">
+                                <h3>Butter Naan</h3>
+                                <p>Soft clay-oven baked flatbread brushed with organic butter. The perfect companion for rich paneer gravies.</p>
+                                <span class="sig-price">₹40.00</span>
+                            </div>
+                        </div>
+                        <div class="sig-card">
+                            <div class="sig-card-no-img" style="background: linear-gradient(135deg, #0f172a, #0d9488);">
+                                <i class="fa-solid fa-bowl-food" style="font-size: 40px; color: var(--color-primary);"></i>
+                            </div>
+                            <div class="sig-card-body">
+                                <h3>Kadai Paneer</h3>
+                                <p>Cottage cheese wok-tossed with fresh bell peppers, onions, tomatoes, and freshly ground Kadai spices.</p>
+                                <span class="sig-price">₹260.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="home-footer">
+                <p>&copy; 2026 Hotel Kalpavant. All Rights Reserved. Powered by Smart Restaurant Operating System (SROS).</p>
+            </footer>
+        </section>
+
+        <!-- ================= SROS ENTRANCE LOGIN PORTAL ================= -->
+        <section id="portal-login-gate" class="portal-login-view">
+            <div class="login-wrapper">
+                <button class="btn btn-secondary btn-back-home" id="btn-login-back-home"><i class="fa-solid fa-arrow-left"></i> Back to Home Page</button>
+                
+                <div class="login-card glass shadow">
+                    <div class="card-header text-center">
+                        <h2>SROS PORTAL ENTER GATE</h2>
+                        <p>Select your operational role to access SROS dashboards</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- Role Selection Grid -->
+                        <div class="role-grid-selection" id="login-role-buttons">
+                            <button class="login-role-btn" data-role="customer"><i class="fa-solid fa-user"></i>Customer</button>
+                            <button class="login-role-btn" data-role="waiter"><i class="fa-solid fa-bell-concierge"></i>Waiter</button>
+                            <button class="login-role-btn" data-role="sabji-cook"><i class="fa-solid fa-fire-burner"></i>Sabji Cook</button>
+                            <button class="login-role-btn" data-role="roti-cook"><i class="fa-solid fa-bread-slice"></i>Roti Cook</button>
+                            <button class="login-role-btn" data-role="billing"><i class="fa-solid fa-file-invoice-dollar"></i>Billing Operator</button>
+                            <button class="login-role-btn" data-role="manager"><i class="fa-solid fa-briefcase"></i>Manager</button>
+                            <button class="login-role-btn" data-role="owner"><i class="fa-solid fa-chart-line"></i>Owner</button>
+                        </div>
+
+                        <!-- Customer Login Seating Setup (Hidden by default) -->
+                        <div class="customer-login-form-box hidden" id="login-customer-setup">
+                            <div class="divider border-top"></div>
+                            <h4>Customer Table Seating Check-in</h4>
+                            <form id="gate-customer-login-form" class="form-grid">
+                                <div class="form-group">
+                                    <label for="gate-cust-name">Your Name</label>
+                                    <input type="text" id="gate-cust-name" placeholder="Guest Name" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gate-cust-mobile">Mobile Number (OTP Mock)</label>
+                                    <input type="tel" id="gate-cust-mobile" placeholder="10-digit number" pattern="[0-9]{10}" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gate-cust-table">Select Table</label>
+                                    <select id="gate-cust-table" required>
+                                        <option value="1">Table 1 (2-Seater)</option>
+                                        <option value="2">Table 2 (4-Seater)</option>
+                                        <option value="3">Table 3 (4-Seater)</option>
+                                        <option value="4">Table 4 (6-Seater)</option>
+                                        <option value="5">Table 5 (6-Seater)</option>
+                                        <option value="6">Table 6 (8-Seater)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="gate-cust-seat">Select Seat Number</label>
+                                    <select id="gate-cust-seat" required>
+                                        <option value="1">Seat 1</option>
+                                        <option value="2">Seat 2</option>
+                                        <option value="3">Seat 3</option>
+                                        <option value="4">Seat 4</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="gate-cust-referrer">Referrer Mobile (Optional)</label>
+                                    <input type="tel" id="gate-cust-referrer" placeholder="Referrer mobile number" pattern="[0-9]{10}">
+                                </div>
+                                <button type="submit" class="btn btn-success"><i class="fa-solid fa-circle-check"></i> Complete Check-In & Enter</button>
+                            </form>
+                        </div>
+
+                        <!-- Staff PIN Login Panel (Hidden by default) -->
+                        <div class="staff-login-form-box hidden" id="login-staff-setup">
+                            <div class="divider border-top"></div>
+                            <h4>Staff Passcode Authentication</h4>
+                            <p class="text-muted">Enter PIN to access the <span class="text-cyan font-bold" id="staff-login-role-label">?</span> portal.</p>
+                            
+                            <div class="pin-entry-container">
+                                <input type="password" id="staff-pin-input" class="pin-display" readonly maxlength="4" placeholder="••••">
+                                <div class="pin-pad">
+                                    <button class="pin-key">1</button>
+                                    <button class="pin-key">2</button>
+                                    <button class="pin-key">3</button>
+                                    <button class="pin-key">4</button>
+                                    <button class="pin-key">5</button>
+                                    <button class="pin-key">6</button>
+                                    <button class="pin-key">7</button>
+                                    <button class="pin-key">8</button>
+                                    <button class="pin-key">9</button>
+                                    <button class="pin-key pin-clear text-rose"><i class="fa-solid fa-delete-left"></i></button>
+                                    <button class="pin-key">0</button>
+                                    <button class="pin-key pin-submit text-green"><i class="fa-solid fa-right-to-bracket"></i></button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SROS PORTAL HEADER NAVBAR (Only visible when logged in to a portal) -->
+        <header class="app-header hidden" id="sros-portal-header">
+            <div class="logo">
+                <i class="fa-solid fa-utensils logo-icon"></i>
+                <span class="logo-text">KALPAVANT</span>
+                <span class="logo-subtext" id="sros-active-role-tag">SROS</span>
+            </div>
+            
+            <div class="header-right-controls">
+                <div class="connection-status">
+                    <div class="status-dot offline" id="conn-dot"></div>
+                    <span id="conn-text">Disconnected</span>
+                </div>
+                <button class="btn btn-danger btn-sm" id="btn-sros-logout"><i class="fa-solid fa-right-from-bracket"></i> Logout Portal</button>
+            </div>
+        </header>
+
+        <!-- Main Portal Content Viewports -->
+        <main class="app-main">
+
+            <!-- ================= CUSTOMER PORTAL ================= -->
+            <section id="portal-customer" class="portal-view">
+                <div class="grid-layout">
+                    <!-- Left: Menu selections -->
+                    <div class="main-column">
+                        
+                        <div class="card glass shadow" id="customer-menu-box">
+                            <div class="menu-header">
+                                <div class="menu-tabs">
+                                    <button class="menu-tab active" data-category="SABJI">Vegetables</button>
+                                    <button class="menu-tab" data-category="ROTI">Roti / Breads</button>
+                                    <button class="menu-tab" data-category="ADD_ON">Extras & Sides</button>
+                                    <button class="menu-tab" data-category="BEVERAGE">Beverages</button>
+                                    <button class="menu-tab" data-category="DESSERT">Desserts</button>
+                                </div>
+                                <div class="search-bar">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="menu-search" placeholder="Search dishes...">
+                                </div>
+                            </div>
+                            
+                            <div class="menu-grid" id="customer-menu-items">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Right: Cart & Tracker -->
+                    <div class="side-column">
+                        
+                        <!-- Assistance Panel -->
+                        <div class="card glass shadow" id="customer-assistance-box">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-bell"></i> Service Requests</h3>
+                            </div>
+                            <div class="card-body assistance-buttons">
+                                <button class="btn btn-assist" id="btn-call-waiter"><i class="fa-solid fa-handshake-angle"></i> Call Waiter</button>
+                                <button class="btn btn-assist" id="btn-request-water"><i class="fa-solid fa-glass-water"></i> Request Water</button>
+                                <button class="btn btn-assist" id="btn-request-bill"><i class="fa-solid fa-receipt"></i> Request Bill</button>
+                            </div>
+                        </div>
+
+                        <!-- Seat Cart -->
+                        <div class="card glass shadow" id="customer-cart-box">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-basket-shopping"></i> Seat <span id="cart-active-seat-label">1</span> Cart</h3>
+                            </div>
+                            <div class="card-body cart-body">
+                                <div class="cart-items" id="cart-items-container">
+                                    <p class="empty-message">Your cart is empty.</p>
+                                </div>
+                                
+                                <div class="cart-summary border-top">
+                                    <div class="summary-row">
+                                        <span>Subtotal:</span>
+                                        <span>₹<span id="cart-subtotal">0.00</span></span>
+                                    </div>
+                                    <div class="summary-row discount-row hidden" id="cart-discount-container">
+                                        <span id="cart-discount-label">Loyalty Discount (0%):</span>
+                                        <span class="text-green">-₹<span id="cart-discount">0.00</span></span>
+                                    </div>
+                                    <div class="summary-row total-row">
+                                        <span>Total Amount:</span>
+                                        <span>₹<span id="cart-total">0.00</span></span>
+                                    </div>
+                                    
+                                    <div class="priority-checkbox">
+                                        <input type="checkbox" id="order-priority">
+                                        <label for="order-priority" class="text-orange">
+                                            <i class="fa-solid fa-star"></i> Flag as Priority Order
+                                        </label>
+                                    </div>
+
+                                    <button class="btn btn-primary btn-block" id="btn-place-order" disabled><i class="fa-solid fa-utensils"></i> Place Order</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Active Order Item-Level Tracker -->
+                        <div class="card glass shadow hidden" id="customer-tracker-box">
+                            <div class="card-header flex-row justify-between">
+                                <h3><i class="fa-solid fa-hourglass-half"></i> SROS Live Status</h3>
+                                <span class="badge badge-accent" id="active-order-id-label">#00</span>
+                            </div>
+                            <div class="card-body tracker-body">
+                                
+                                <div class="tracker-items-list" id="tracker-order-items-container">
+                                    <!-- Items listed with individual cancellation locks -->
+                                </div>
+
+                                <div class="ai-delivery-prediction border-top">
+                                    <div class="ai-badge"><i class="fa-solid fa-brain"></i> AI Estimation</div>
+                                    <div class="estimation-time text-cyan">
+                                        Food ready in: <span id="tracker-cooking-eta">--</span> mins
+                                    </div>
+                                    <div class="delivery-time">
+                                        Served at seat: <span id="tracker-delivery-eta">--</span> mins
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <!-- Customer Profile -->
+                        <div class="card glass shadow" id="customer-profile-box">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-id-card"></i> Table Seating Profile</h3>
+                            </div>
+                            <div class="card-body customer-profile-body">
+                                <div class="profile-row">
+                                    <span>Guest:</span>
+                                    <strong id="profile-name">Name</strong>
+                                </div>
+                                <div class="profile-row">
+                                    <span>Mobile:</span>
+                                    <span id="profile-mobile">--</span>
+                                </div>
+                                <div class="profile-row">
+                                    <span>Seating Details:</span>
+                                    <span class="text-cyan">Table <span id="profile-table-num">?</span> - Seat <span id="profile-seat-num">?</span></span>
+                                </div>
+                                <div class="profile-row">
+                                    <span>Loyalty Tier:</span>
+                                    <span id="profile-tier" class="badge badge-success">Regular</span>
+                                </div>
+                                <div class="profile-row">
+                                    <span>Eligible Discount:</span>
+                                    <span id="profile-discount" class="text-green">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= WAITER PORTAL ================= -->
+            <section id="portal-waiter" class="portal-view">
+                <div class="notifications-panel glass shadow" id="waiter-alerts-panel">
+                    <div class="panel-header">
+                        <h4><i class="fa-solid fa-bell text-rose animate-pulse"></i> Customer Calls</h4>
+                    </div>
+                    <div class="panel-body" id="waiter-alerts-container">
+                        <p class="empty-message">No active calls.</p>
+                    </div>
+                </div>
+
+                <div class="waiter-dashboard">
+                    <!-- Table Grid Matrix -->
+                    <div class="tables-overview">
+                        <div class="section-title border-bottom-none">
+                            <div class="flex-row">
+                                <h3><i class="fa-solid fa-grip"></i> Tables Grid Matrix</h3>
+                                <button class="btn btn-secondary btn-refresh" onclick="refreshTablesMatrix(true)"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
+                            <p>Overview of table seating status and cleaning workflows.</p>
+                        </div>
+                        <div class="table-grid-matrix" id="waiter-tables-matrix">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Waiter inspector -->
+                    <div class="table-inspector glass shadow hidden" id="waiter-table-inspector">
+                        <div class="card-header border-bottom">
+                            <h3>Table <span id="inspector-table-number">?</span> Details</h3>
+                            <button class="btn-close" id="btn-close-inspector"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="card-body inspector-body">
+                            
+                            <div class="table-info-section">
+                                <p><strong>Status:</strong> <span class="badge" id="inspector-table-status">Available</span></p>
+                            </div>
+                            
+                            <!-- Seating member editor (SROS specific) -->
+                            <div class="seating-assignment-section border-top">
+                                <h4>Seat Guest Assignments</h4>
+                                <div class="seats-list-edit" id="inspector-seats-editor-container">
+                                    <!-- Seats 1-4 list with assign inputs -->
+                                </div>
+                            </div>
+                            
+                            <!-- Active ticket list -->
+                            <div class="inspector-orders border-top">
+                                <h4>Active Table Items</h4>
+                                <div id="inspector-orders-container">
+                                    <p class="empty-message">No active items.</p>
+                                </div>
+                            </div>
+
+                            <div class="inspector-controls border-top">
+                                <h4>Seating Controls</h4>
+                                <div class="btn-group">
+                                    <button class="btn btn-secondary" id="btn-waiter-mark-available">Force Available</button>
+                                    <button class="btn btn-secondary" id="btn-waiter-mark-cleaning">Force Clean Required</button>
+                                </div>
+                                <div class="btn-group" style="margin-top:10px;">
+                                    <button class="btn btn-success" id="btn-waiter-start-cleaning"><i class="fa-solid fa-soap"></i> Start Cleaning</button>
+                                    <button class="btn btn-success" id="btn-waiter-complete-cleaning"><i class="fa-solid fa-circle-check"></i> Complete Cleaning</button>
+                                </div>
+                                <button class="btn btn-accent btn-block" style="margin-top:10px;" id="btn-waiter-add-comp-item" disabled><i class="fa-solid fa-gift"></i> Add Complimentary Item</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Comp Modal -->
+                <div class="modal hidden" id="complimentary-item-modal">
+                    <div class="modal-content glass">
+                        <div class="modal-header border-bottom">
+                            <h3>Add Complimentary Item</h3>
+                            <button class="btn-close" id="btn-close-comp-modal"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="comp-menu-item-select">Select Dish</label>
+                                <select id="comp-menu-item-select">
+                                    <!-- Loaded dynamically -->
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="comp-quantity-select">Quantity</label>
+                                <input type="number" id="comp-quantity-select" value="1" min="1" max="10">
+                            </div>
+                            <button class="btn btn-accent btn-block" id="btn-submit-comp-item">Add Complimentary Item</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= SABJI COOK PORTAL ================= -->
+            <section id="portal-sabji-cook" class="portal-view">
+                <div class="grid-layout">
+                    <!-- Left: Kitchen queue -->
+                    <div class="main-column">
+                        <div class="section-title border-bottom-none">
+                            <div class="flex-row">
+                                <h3><i class="fa-solid fa-kitchen-set"></i> Sabji Cooking Station Queue</h3>
+                                <button class="btn btn-secondary btn-refresh" onclick="refreshKitchenQueues(true)"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
+                            <p>Update cooking status states. Modifications are locked upon start.</p>
+                        </div>
+                        <div class="cooking-queue" id="sabji-queue-container">
+                            <!-- Cards loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: AI guidance -->
+                    <div class="side-column">
+                        <div class="card glass shadow border-cyan">
+                            <div class="card-header">
+                                <div class="ai-badge"><i class="fa-solid fa-brain"></i> AI Kitchen Guide</div>
+                                <h3>Ingredient Pre-Prep Forecasting</h3>
+                                <p>Predicts material chopping requirements based on current queue metrics.</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="ai-guidance-list" id="sabji-ai-guidance-container">
+                                    <!-- Guidance list -->
+                                </div>
+                                <div class="border-top ai-forecast-factors">
+                                    <small class="text-muted">Calculations based on:</small>
+                                    <div class="row-flex text-cyan">
+                                        <span>Day: <span id="sabji-ai-factor-day">--</span></span>
+                                        <span>Time: <span id="sabji-ai-factor-time">--</span></span>
+                                        <span>Multiplier: <span id="sabji-ai-factor-mult">1.0x</span></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= ROTI COOK PORTAL ================= -->
+            <section id="portal-roti-cook" class="portal-view">
+                <div class="grid-layout">
+                    <!-- Left: active rotis -->
+                    <div class="main-column">
+                        <div class="section-title border-bottom-none">
+                            <div class="flex-row">
+                                <h3><i class="fa-solid fa-fire-burner"></i> Roti Baking Station Queue</h3>
+                                <button class="btn btn-secondary btn-refresh" onclick="refreshKitchenQueues(true)"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
+                            <p>Clay oven baking counters. Complete tickets below.</p>
+                        </div>
+                        <div class="cooking-queue" id="roti-queue-container">
+                            <!-- Cards loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Roti bake counter tally -->
+                    <div class="side-column">
+                        <div class="card glass shadow">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-calculator"></i> Active Bake Counters</h3>
+                                <p>Total bread counts in current baking queue.</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="roti-counter-list" id="roti-counters-container">
+                                    <div class="roti-count-item">
+                                        <span class="roti-name">Tandoori Roti</span>
+                                        <span class="roti-count-val" id="roti-val-tandoori">0</span>
+                                    </div>
+                                    <div class="roti-count-item">
+                                        <span class="roti-name">Butter Roti</span>
+                                        <span class="roti-count-val" id="roti-val-butter">0</span>
+                                    </div>
+                                    <div class="roti-count-item">
+                                        <span class="roti-name">Naan</span>
+                                        <span class="roti-count-val" id="roti-val-naan">0</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= BILLING PORTAL ================= -->
+            <section id="portal-billing" class="portal-view">
+                <div class="grid-layout">
+                    <!-- Left: Table Checkout Selector -->
+                    <div class="main-column">
+                        <div class="section-title border-bottom-none">
+                            <div class="flex-row">
+                                <h3><i class="fa-solid fa-cash-register"></i> Billing & Invoice Counter</h3>
+                                <button class="btn btn-secondary btn-refresh" onclick="refreshBillingTables(true)"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
+                            <p>Generate splits invoices by seat or combine them.</p>
+                        </div>
+                        <div class="billing-tables-grid" id="billing-tables-container">
+                            <!-- Table cards loaded dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Right: Invoice builder (Combined or Split) -->
+                    <div class="side-column">
+                        <!-- Combined / Split buttons -->
+                        <div class="billing-type-tabs hidden" id="billing-type-selection-tabs">
+                            <button class="billing-tab active" id="btn-bill-combined">Combined Bill</button>
+                            <button class="billing-tab" id="btn-bill-split">Split Bill (Seat-wise)</button>
+                        </div>
+
+                        <!-- Combined Bill Invoice view -->
+                        <div class="card glass shadow receipt-card hidden" id="billing-receipt-card">
+                            <!-- Invoiced content generated dynamically -->
+                        </div>
+
+                        <!-- Split Bill Invoice view -->
+                        <div class="card glass shadow receipt-card hidden" id="billing-split-receipt-card">
+                            <!-- Split seats receipts generated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= MANAGER PORTAL [NEW] ================= -->
+            <section id="portal-manager" class="portal-view">
+                <div class="grid-layout">
+                    <!-- Left: Reservation manager -->
+                    <div class="main-column">
+                        <div class="section-title border-bottom-none">
+                            <div class="flex-row">
+                                <h3><i class="fa-solid fa-calendar-check"></i> Reservation Booking Approvals</h3>
+                                <button class="btn btn-secondary btn-refresh" onclick="refreshManagerDashboard(true)"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                            </div>
+                            <p>Manage customer reservations, confirm seats, or reject bookings.</p>
+                        </div>
+                        
+                        <div class="card glass shadow">
+                            <div class="card-body">
+                                <div class="reservation-queue-list" id="manager-reservations-container">
+                                    <p class="empty-message">No pending reservations.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Cleaning alert checklist -->
+                        <div class="card glass shadow">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-hand-sparkles text-rose"></i> Cleaning Alerts & Queue</h3>
+                                <p>Tables checked out that require sanitization before check-in.</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="cleaning-alerts-list" id="manager-cleaning-alerts-container">
+                                    <!-- Alerts checklist loaded dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Add reservation simulator -->
+                    <div class="side-column">
+                        <div class="card glass shadow">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-calendar-plus"></i> Simulate Booking Request</h3>
+                            </div>
+                            <div class="card-body">
+                                <form id="manager-booking-sim-form" class="form-grid" style="display:flex; flex-direction:column; gap:10px;">
+                                    <div class="form-group">
+                                        <label for="sim-book-name">Customer Name</label>
+                                        <input type="text" id="sim-book-name" placeholder="Guest name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sim-book-mobile">Customer Mobile</label>
+                                        <input type="tel" id="sim-book-mobile" placeholder="10-digit number" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sim-book-table">Table Number</label>
+                                        <input type="number" id="sim-book-table" min="1" max="6" value="1" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="sim-book-time">Date & Time</label>
+                                        <input type="text" id="sim-book-time" placeholder="yyyy-MM-dd HH:mm" value="2026-06-02 19:30" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Submit Booking Request</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+
+            <!-- ================= OWNER / ADMIN PORTAL ================= -->
+            <section id="portal-owner" class="portal-view">
+                <div class="stats-row">
+                    <div class="stat-card glass shadow border-cyan">
+                        <div class="stat-icon bg-cyan-light"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-label">Daily Revenue</span>
+                            <span class="stat-val" id="owner-stat-revenue">₹0.00</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass shadow border-purple">
+                        <div class="stat-icon bg-purple-light"><i class="fa-solid fa-bowl-food"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-label">Active Orders</span>
+                            <span class="stat-val" id="owner-stat-orders">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass shadow border-emerald">
+                        <div class="stat-icon bg-emerald-light"><i class="fa-solid fa-people-group"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-label">Occupants Seated</span>
+                            <span class="stat-val" id="owner-stat-customers">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card glass shadow border-orange">
+                        <div class="stat-icon bg-orange-light"><i class="fa-solid fa-chair"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-label">Table Utilization</span>
+                            <span class="stat-val" id="owner-stat-utilization">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid-layout">
+                    <div class="main-column">
+                        
+                        <div class="card glass shadow">
+                            <div class="card-header">
+                                <div class="flex-row">
+                                    <h3><i class="fa-solid fa-chart-area"></i> Peak Hour Analysis & Traffic Forecast</h3>
+                                    <button class="btn btn-secondary btn-refresh" onclick="renderOwnerPortal()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+                                </div>
+                                <p>Hour-by-hour order distribution forecast plotted dynamically via SROS vector scales.</p>
+                            </div>
+                            <div class="card-body flex-center">
+                                <div class="chart-container" id="peak-hour-chart-wrapper">
+                                    <!-- Chart SVG -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Directory -->
+                        <div class="card glass shadow">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-users"></i> Customer Loyalty Directory</h3>
+                                <p>SROS profiles, visit tally, and referral mappings.</p>
+                            </div>
+                            <div class="card-body text-scroll">
+                                <table class="table" id="owner-customer-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Mobile</th>
+                                            <th>Tier</th>
+                                            <th>Visits</th>
+                                            <th>Referrals</th>
+                                            <th>Active Rewards</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="owner-customers-list">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="side-column">
+                        
+                        <!-- AI Inventory Forecast -->
+                        <div class="card glass shadow border-rose">
+                            <div class="card-header">
+                                <h3><i class="fa-solid fa-boxes-stacked text-rose"></i> Inventory Tracking</h3>
+                                <p>Estimated ingredient balances. Red flags show low stock thresholds.</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="inventory-status-list">
+                                    <div class="inventory-item">
+                                        <div class="inv-row">
+                                            <span class="inv-name">Paneer Cubes</span>
+                                            <span class="inv-weight text-cyan" id="inv-val-paneer">4.2 kg / 8.0 kg</span>
+                                        </div>
+                                        <div class="progress-bar"><div class="bar-fill bg-cyan" style="width: 52%"></div></div>
+                                    </div>
+                                    <div class="inventory-item">
+                                        <div class="inv-row">
+                                            <span class="inv-name">Chopped Onions</span>
+                                            <span class="inv-weight text-orange" id="inv-val-onion">2.1 kg / 10.0 kg</span>
+                                        </div>
+                                        <div class="progress-bar"><div class="bar-fill bg-orange animate-pulse" style="width: 21%"></div></div>
+                                    </div>
+                                    <div class="inventory-item">
+                                        <div class="inv-row">
+                                            <span class="inv-name">Tomato Puree</span>
+                                            <span class="inv-weight text-green" id="inv-val-tomato">6.5 kg / 8.0 kg</span>
+                                        </div>
+                                        <div class="progress-bar"><div class="bar-fill bg-green" style="width: 81%"></div></div>
+                                    </div>
+                                    <div class="inventory-item">
+                                        <div class="inv-row">
+                                            <span class="inv-name">Wheat Dough</span>
+                                            <span class="inv-weight text-rose" id="inv-val-dough">1.0 kg / 12.0 kg</span>
+                                        </div>
+                                        <div class="progress-bar"><div class="bar-fill bg-rose animate-pulse" style="width: 8%"></div></div>
+                                    </div>
+                                </div>
+
+                                <div class="ai-inventory-alert border-top">
+                                    <div class="alert-box alert-danger">
+                                        <i class="fa-solid fa-triangle-exclamation"></i>
+                                        <span><strong>Critical Stock Alert:</strong> Wheat Dough is low. Knead 5kg dough immediately to support incoming Roti orders!</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="app.js"></script>
+</body>
+</html>
