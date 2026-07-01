@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Service
 @Transactional
@@ -117,12 +118,14 @@ public class TableService {
             member = existing.get();
             member.setName(name);
             member.setMobileNumber(mobile);
+            member.setEntryTime(LocalDateTime.now());
         } else {
             member = TableSeatMember.builder()
                     .tableId(tableId)
                     .seatNumber(seatNumber)
                     .name(name)
                     .mobileNumber(mobile)
+                    .entryTime(LocalDateTime.now())
                     .build();
         }
         

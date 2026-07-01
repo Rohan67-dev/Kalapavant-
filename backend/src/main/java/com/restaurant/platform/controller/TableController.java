@@ -42,13 +42,14 @@ public class TableController {
         String name = request.get("name");
         String mobileNumber = request.get("mobileNumber");
         String referrerMobile = request.get("referrerMobile");
+        String password = request.get("password");
 
         if (name == null || mobileNumber == null) {
             return ResponseEntity.badRequest().body("Name and mobile number are required");
         }
 
         try {
-            Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, referrerMobile);
+            Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, password, referrerMobile);
             RestaurantTable table = tableService.checkIn(number, customer);
             return ResponseEntity.ok(table);
         } catch (Exception e) {
@@ -66,7 +67,7 @@ public class TableController {
         }
 
         try {
-            Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, null);
+            Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, null, null);
             RestaurantTable table = tableService.reserveTable(number, customer);
             return ResponseEntity.ok(table);
         } catch (Exception e) {

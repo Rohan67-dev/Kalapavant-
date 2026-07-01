@@ -120,39 +120,78 @@ function initSrosApp() {
         window.scrollTo(0,0);
     });
 
-    // Portal role buttons on enter screen
-    document.querySelectorAll(".login-role-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            document.querySelectorAll(".login-role-btn").forEach(b => b.classList.remove("active"));
-            e.currentTarget.classList.add("active");
-            
-            const role = e.currentTarget.getAttribute("data-role");
-            setupRoleLoginForm(role);
+    // Tab switching for unified SROS login card
+    const tabBtnLogin = document.getElementById("tab-btn-login");
+    const tabBtnSignup = document.getElementById("tab-btn-signup");
+    const loginFormWrapper = document.getElementById("login-form-wrapper");
+    const signupFormWrapper = document.getElementById("signup-form-wrapper");
+
+    if (tabBtnLogin && tabBtnSignup) {
+        tabBtnLogin.addEventListener("click", () => {
+            tabBtnLogin.classList.add("active");
+            tabBtnSignup.classList.remove("active");
+            loginFormWrapper.classList.remove("hidden");
+            signupFormWrapper.classList.add("hidden");
         });
-    });
 
-    // PIN pad digits click
-    document.querySelectorAll(".pin-key:not(.pin-clear):not(.pin-submit)").forEach(key => {
-        key.addEventListener("click", (e) => {
-            if (pinBuffer.length < 4) {
-                pinBuffer += e.target.innerText;
-                document.getElementById("staff-pin-input").value = pinBuffer;
-            }
+        tabBtnSignup.addEventListener("click", () => {
+            tabBtnSignup.classList.add("active");
+            tabBtnLogin.classList.remove("active");
+            signupFormWrapper.classList.remove("hidden");
+            loginFormWrapper.classList.add("hidden");
         });
-    });
+    }
 
-    document.querySelector(".pin-clear").addEventListener("click", () => {
-        pinBuffer = "";
-        document.getElementById("staff-pin-input").value = "";
-    });
-
-    document.querySelector(".pin-submit").addEventListener("click", validateStaffLoginPin);
-
-    // Customer login form checkin submit
-    document.getElementById("gate-customer-login-form").addEventListener("submit", (e) => {
+    // Submit listeners for unified login and signup forms
+    document.getElementById("unified-login-form").addEventListener("submit", (e) => {
         e.preventDefault();
-        submitCustomerCheckIn();
+        submitUnifiedLogin();
     });
+
+    document.getElementById("unified-signup-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        submitUnifiedSignUp();
+    });
+
+    const seatingForm = document.getElementById("unified-seating-form");
+    if (seatingForm) {
+        seatingForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            submitCustomerSeating();
+        });
+    }
+
+    const addStaffForm = document.getElementById("owner-add-staff-form");
+    if (addStaffForm) {
+        addStaffForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            registerNewStaff();
+        });
+    }
+
+    // Theme toggle listeners
+    document.querySelectorAll(".btn-theme-toggle").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const body = document.body;
+            body.classList.toggle("light-theme");
+            const isLight = body.classList.contains("light-theme");
+            localStorage.setItem("sros_theme", isLight ? "light" : "dark");
+            
+            // Update icons for all theme toggle buttons
+            document.querySelectorAll(".btn-theme-toggle i").forEach(i => {
+                i.className = isLight ? "fa-solid fa-sun" : "fa-solid fa-moon";
+            });
+        });
+    });
+    
+    // Load cached theme
+    const cachedTheme = localStorage.getItem("sros_theme");
+    if (cachedTheme === "light") {
+        document.body.classList.add("light-theme");
+        document.querySelectorAll(".btn-theme-toggle i").forEach(i => {
+            i.className = "fa-solid fa-sun";
+        });
+    }
 
     // Logout from portals
     document.getElementById("btn-sros-logout").addEventListener("click", logoutPortalUser);
@@ -313,44 +352,118 @@ function refreshSystemData() {
     if (authenticatedRole === 'owner') renderOwnerPortal();
 }
 
-// Setup Role Forms on Entry Gate
-function setupRoleLoginForm(role) {
-    pinBuffer = "";
-    document.getElementById("staff-pin-input").value = "";
-    
-    if (role === 'customer') {
-        document.getElementById("login-customer-setup").classList.remove("hidden");
-        document.getElementById("login-staff-setup").classList.add("hidden");
-    } else {
-        document.getElementById("login-customer-setup").classList.add("hidden");
-        document.getElementById("login-staff-setup").classList.remove("hidden");
-        document.getElementById("staff-login-role-label").innerText = role.toUpperCase();
-    }
+// Unified Portal login handler
+function submitUnifiedLogin() {
+    const mobile = document.getElementById("login-mobile").value.trim();
+    const password = document.getElementById("login-password").value.trim();
+
+    // First try staff authentication on backend
+    fetch('/api/staff/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobileNumber: mobile, password: password })
+    }).then(res => {
+        if (res.ok) {
+            return res.json().then(staff => {
+                const cleanRole = staff.role.toLowerCase().replace('_', '-');
+                sessionStorage.setItem("sros_role", cleanRole);
+                enterStaffPortal(cleanRole);
+            });
+        } else {
+            return res.text().then(errorMessage => {
+                if (errorMessage.includes("Incorrect passcode")) {
+                    throw new Error(errorMessage);
+                } else {
+                    // Try customer login
+                    return apiRequest('/api/customers/login', {
+                        method: 'POST',
+                        body: JSON.stringify({ mobileNumber: mobile, password: password })
+                    }).then(customer => {
+                        currentCustomer = customer;
+                        // Hide login panels
+                        document.getElementById("login-form-wrapper").classList.add("hidden");
+                        document.querySelector(".login-tabs").style.display = "none";
+                        // Show seating step
+                        document.getElementById("seating-step-wrapper").classList.remove("hidden");
+                    });
+                }
+            });
+        }
+    }).catch(err => {
+        alert("Authentication failed: " + err.message);
+    });
 }
 
-// PIN Validation for staff
-function validateStaffLoginPin() {
-    const role = document.querySelector(".login-role-btn.active").getAttribute("data-role");
-    const pin = pinBuffer;
-    
-    const pins = {
-        waiter: "1111",
-        "sabji-cook": "2222",
-        "roti-cook": "3333",
-        billing: "4444",
-        owner: "5555",
-        manager: "8888"
-    };
-    
-    if (pins[role] && pins[role] === pin) {
-        // Success
-        sessionStorage.setItem("sros_role", role);
-        enterStaffPortal(role);
-    } else {
-        alert("Incorrect operational passcode. Try again!");
-        pinBuffer = "";
-        document.getElementById("staff-pin-input").value = "";
-    }
+// Unified Portal registration handler
+function submitUnifiedSignUp() {
+    const name = document.getElementById("signup-name").value.trim();
+    const mobile = document.getElementById("signup-mobile").value.trim();
+    const password = document.getElementById("signup-password").value.trim();
+
+    apiRequest('/api/customers/register', {
+        method: 'POST',
+        body: JSON.stringify({
+            name: name,
+            mobileNumber: mobile,
+            password: password
+        })
+    }).then(customer => {
+        currentCustomer = customer;
+        
+        // Hide signup panels
+        document.getElementById("signup-form-wrapper").classList.add("hidden");
+        document.querySelector(".login-tabs").style.display = "none";
+        // Show seating step
+        document.getElementById("seating-step-wrapper").classList.remove("hidden");
+    }).catch(err => {
+        alert("Registration failed: " + err.message);
+    });
+}
+
+// Intermediate Customer Seating step
+function submitCustomerSeating() {
+    if (!currentCustomer) return;
+    const tableNum = parseInt(document.getElementById("seating-cust-table").value);
+    const seatNum = parseInt(document.getElementById("seating-cust-seat").value);
+    const referrer = document.getElementById("seating-cust-referrer").value.trim();
+
+    currentTable = tableNum;
+    currentSeat = seatNum;
+
+    // Seating check-in
+    apiRequest(`/api/tables/${tableNum}/checkin`, {
+        method: 'POST',
+        body: JSON.stringify({
+            name: currentCustomer.name,
+            mobileNumber: currentCustomer.mobileNumber,
+            password: currentCustomer.password,
+            referrerMobile: referrer
+        })
+    }).then(table => {
+        // Seat assignment
+        return apiRequest(`/api/tables/${table.id}/seats/${seatNum}/assign`, {
+            method: 'POST',
+            body: JSON.stringify({
+                name: currentCustomer.name,
+                mobileNumber: currentCustomer.mobileNumber
+            })
+        });
+    }).then(() => {
+        // Save in session
+        sessionStorage.setItem("sros_role", "customer");
+        sessionStorage.setItem("sros_customer", JSON.stringify(currentCustomer));
+        sessionStorage.setItem("sros_table", currentTable.toString());
+        sessionStorage.setItem("sros_seat", currentSeat.toString());
+
+        // Hide seating step and restore layout for future logouts
+        document.getElementById("seating-step-wrapper").classList.add("hidden");
+        document.getElementById("login-form-wrapper").classList.remove("hidden");
+        document.querySelector(".login-tabs").style.display = "flex";
+
+        enterCustomerPortal();
+    }).catch(err => {
+        alert("Table check-in failed: " + err.message);
+    });
 }
 
 // Enter Staff View
@@ -366,48 +479,6 @@ function enterStaffPortal(role) {
     document.getElementById(`portal-${role}`).classList.add("active");
     
     refreshSystemData();
-}
-
-// Customer Check-in Submit
-function submitCustomerCheckIn() {
-    const name = document.getElementById("gate-cust-name").value;
-    const mobile = document.getElementById("gate-cust-mobile").value;
-    const tableNum = parseInt(document.getElementById("gate-cust-table").value);
-    const seatNum = parseInt(document.getElementById("gate-cust-seat").value);
-    const referrer = document.getElementById("gate-cust-referrer").value;
-    
-    // First request checkin
-    apiRequest(`/api/tables/${tableNum}/checkin`, {
-        method: 'POST',
-        body: JSON.stringify({
-            name: name,
-            mobileNumber: mobile,
-            referrerMobile: referrer
-        })
-    }).then(table => {
-        currentCustomer = table.currentCustomer;
-        currentTable = tableNum;
-        currentSeat = seatNum;
-        
-        // Save in session
-        sessionStorage.setItem("sros_role", "customer");
-        sessionStorage.setItem("sros_customer", JSON.stringify(currentCustomer));
-        sessionStorage.setItem("sros_table", tableNum.toString());
-        sessionStorage.setItem("sros_seat", seatNum.toString());
-        
-        // Also assign member seat automatically on backend
-        return apiRequest(`/api/tables/${table.id}/seats/${seatNum}/assign`, {
-            method: 'POST',
-            body: JSON.stringify({
-                name: name,
-                mobileNumber: mobile
-            })
-        });
-    }).then(() => {
-        enterCustomerPortal();
-    }).catch(err => {
-        alert("Check-in blocked: " + err.message);
-    });
 }
 
 function enterCustomerPortal() {
@@ -450,18 +521,32 @@ function logoutPortalUser() {
     cart = [];
     
     // Reset forms
-    document.getElementById("gate-customer-login-form").reset();
-    document.getElementById("staff-pin-input").value = "";
-    pinBuffer = "";
+    const loginForm = document.getElementById("unified-login-form");
+    if (loginForm) loginForm.reset();
+    const signupForm = document.getElementById("unified-signup-form");
+    if (signupForm) signupForm.reset();
+    const seatingForm = document.getElementById("unified-seating-form");
+    if (seatingForm) seatingForm.reset();
     
     document.getElementById("sros-portal-header").classList.add("hidden");
     document.querySelectorAll(".portal-view").forEach(v => v.classList.remove("active"));
     document.getElementById("portal-login-gate").classList.add("active");
     
-    // Re-active selects
-    document.querySelectorAll(".login-role-btn").forEach(b => b.classList.remove("active"));
-    document.getElementById("login-customer-setup").classList.add("hidden");
-    document.getElementById("login-staff-setup").classList.add("hidden");
+    // Reset seating step visibility
+    document.getElementById("seating-step-wrapper").classList.add("hidden");
+    document.querySelector(".login-tabs").style.display = "flex";
+    
+    // Select default tab
+    const tabBtnLogin = document.getElementById("tab-btn-login");
+    const tabBtnSignup = document.getElementById("tab-btn-signup");
+    const loginFormWrapper = document.getElementById("login-form-wrapper");
+    const signupFormWrapper = document.getElementById("signup-form-wrapper");
+    if (tabBtnLogin && tabBtnSignup) {
+        tabBtnLogin.classList.add("active");
+        tabBtnSignup.classList.remove("active");
+        loginFormWrapper.classList.remove("hidden");
+        signupFormWrapper.classList.add("hidden");
+    }
 }
 
 // ----------------------------------------------------
@@ -802,9 +887,16 @@ function inspectTableDetails(tableNumber) {
                 const member = assignedSeats.find(s => s.seatNumber === seat);
                 const guestNameStr = member ? member.name : "Unassigned";
                 
+                let entryTimeStr = "";
+                if (member && member.entryTime) {
+                    const d = new Date(member.entryTime);
+                    const formattedTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    entryTimeStr = `<span class="seat-entry-time" style="font-size: 11px; color: var(--color-primary); margin-left: 8px;"><i class="fa-solid fa-clock"></i> ${formattedTime}</span>`;
+                }
+                
                 row.innerHTML = `
                     <span class="seat-label-num">Seat ${seat}</span>
-                    <span class="seat-guest-name">${guestNameStr}</span>
+                    <span class="seat-guest-name">${guestNameStr}${entryTimeStr}</span>
                     <input type="text" class="seat-assign-input" placeholder="Assign name..." value="${member ? member.name : ''}" onchange="assignSeatMemberName(${table.id}, ${seat}, this.value)">
                 `;
                 seatsContainer.appendChild(row);
@@ -1006,7 +1098,8 @@ function renderSabjiQueue() {
     
     activeOrders.forEach(order => {
         order.items.forEach(item => {
-            if (item.menuItem.category === 'SABJI' && item.status !== 'READY') {
+            const cat = item.menuItem.category;
+            if ((cat === 'SABJI' || cat === 'SOUP' || cat === 'STARTER' || cat === 'RICE' || cat === 'COMBO') && item.status !== 'READY') {
                 itemsCount++;
                 const card = document.createElement("div");
                 card.className = `queue-card ${order.priority ? 'priority-card' : ''}`;
@@ -1066,9 +1159,7 @@ function renderRotiQueue() {
                 itemsCount++;
                 
                 const rName = item.menuItem.name;
-                if (counts[rName] !== undefined) {
-                    counts[rName] += item.quantity;
-                }
+                counts[rName] = (counts[rName] || 0) + item.quantity;
                 
                 const card = document.createElement("div");
                 card.className = `queue-card ${order.priority ? 'priority-card' : ''}`;
@@ -1109,9 +1200,9 @@ function renderRotiQueue() {
         container.innerHTML = "<p class='empty-message'>No active Roti orders in queue.</p>";
     }
     
-    document.getElementById("roti-val-tandoori").innerText = counts["Tandoori Roti"];
-    document.getElementById("roti-val-butter").innerText = counts["Butter Roti"];
-    document.getElementById("roti-val-naan").innerText = counts["Naan"];
+    document.getElementById("roti-val-tandoori").innerText = (counts["Plain Tandoori Roti"] || 0) + (counts["Butter Tandoori Roti"] || 0) + (counts["Tandoori Roti"] || 0) + (counts["Butter Roti"] || 0);
+    document.getElementById("roti-val-butter").innerText = (counts["Plain Chapati"] || 0) + (counts["Butter Chapati"] || 0) + (counts["Plain Chapati Paratha"] || 0) + (counts["Butter Chapati Paratha"] || 0);
+    document.getElementById("roti-val-naan").innerText = (counts["Butter Naan"] || 0) + (counts["Plain Naan"] || 0) + (counts["Butter Garlic Naan"] || 0) + (counts["Cheese Naan"] || 0) + (counts["Cheese Garlic Naan"] || 0) + (counts["Cheese Butter Naan"] || 0) + (counts["Naan"] || 0);
 }
 
 function changeItemStatus(itemId, status) {
@@ -1670,6 +1761,74 @@ function renderOwnerPortal() {
         });
         
     renderOwnerPeakSvgChart();
+    loadStaffMembers();
+}
+
+function loadStaffMembers() {
+    const listBody = document.getElementById("owner-staff-list");
+    if (!listBody) return;
+    
+    listBody.innerHTML = "<tr><td colspan='4' class='text-center'>Loading staff...</td></tr>";
+    
+    fetch('/api/staff')
+        .then(res => res.json())
+        .then(staffList => {
+            listBody.innerHTML = "";
+            staffList.forEach(s => {
+                const tr = document.createElement("tr");
+                const roleClean = s.role.replace(/_/g, " ").toLowerCase();
+                const roleFormatted = roleClean.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                
+                let loginTimeStr = "Never";
+                if (s.lastLoginTime) {
+                    const d = new Date(s.lastLoginTime);
+                    loginTimeStr = d.toLocaleString();
+                }
+                
+                tr.innerHTML = `
+                    <td><strong>${s.name}</strong></td>
+                    <td><span class="badge badge-accent">${roleFormatted}</span></td>
+                    <td><code>${s.mobileNumber}</code></td>
+                    <td><span class="text-cyan">${loginTimeStr}</span></td>
+                `;
+                listBody.appendChild(tr);
+            });
+            
+            if (staffList.length === 0) {
+                listBody.innerHTML = "<tr><td colspan='4' class='empty-message'>No registered staff members.</td></tr>";
+            }
+        }).catch(err => {
+            console.error("Failed to load staff list", err);
+            listBody.innerHTML = "<tr><td colspan='4' class='empty-message text-rose'>Failed to load staff list.</td></tr>";
+        });
+}
+
+function registerNewStaff() {
+    const name = document.getElementById("staff-reg-name").value.trim();
+    const mobile = document.getElementById("staff-reg-mobile").value.trim();
+    const password = document.getElementById("staff-reg-password").value.trim();
+    const role = document.getElementById("staff-reg-role").value;
+
+    fetch('/api/staff/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: name,
+            mobileNumber: mobile,
+            password: password,
+            role: role
+        })
+    }).then(res => {
+        if (res.ok) {
+            alert("New staff member registered successfully!");
+            document.getElementById("owner-add-staff-form").reset();
+            loadStaffMembers();
+        } else {
+            return res.text().then(msg => { throw new Error(msg); });
+        }
+    }).catch(err => {
+        alert("Registration failed: " + err.message);
+    });
 }
 
 function renderOwnerPeakSvgChart() {

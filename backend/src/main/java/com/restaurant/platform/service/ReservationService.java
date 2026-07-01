@@ -38,7 +38,7 @@ public class ReservationService {
             throw new IllegalStateException("Reservation blocked: Table is currently in cleaning or out of service.");
         }
 
-        Customer customer = customerService.getOrCreateCustomer(customerName, customerMobile, null);
+        Customer customer = customerService.getOrCreateCustomer(customerName, customerMobile, null, null);
 
         Reservation reservation = Reservation.builder()
                 .table(table)

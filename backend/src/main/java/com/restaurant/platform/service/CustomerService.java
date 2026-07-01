@@ -21,7 +21,7 @@ public class CustomerService {
         this.webSocketService = webSocketService;
     }
 
-    public Customer getOrCreateCustomer(String name, String mobileNumber, String referrerMobile) {
+    public Customer getOrCreateCustomer(String name, String mobileNumber, String password, String referrerMobile) {
         Optional<Customer> existing = customerRepository.findByMobileNumber(mobileNumber);
         
         if (existing.isPresent()) {
@@ -32,6 +32,7 @@ public class CustomerService {
         Customer customer = Customer.builder()
                 .name(name)
                 .mobileNumber(mobileNumber)
+                .password(password != null ? password : "0000")
                 .visitCount(0) // First visit
                 .referralHistory(new ArrayList<>())
                 .discountsEarned(10.0) // 10% discount on first visit
@@ -47,6 +48,23 @@ public class CustomerService {
 
         webSocketService.sendUpdate("CUSTOMER_REGISTRATION", savedCustomer);
         return savedCustomer;
+    }
+
+    public Customer registerCustomer(String name, String mobileNumber, String password, String referrerMobile) {
+        Optional<Customer> existing = customerRepository.findByMobileNumber(mobileNumber);
+        if (existing.isPresent()) {
+            throw new RuntimeException("Customer already registered with this mobile number. Please log in instead.");
+        }
+        return getOrCreateCustomer(name, mobileNumber, password, referrerMobile);
+    }
+
+    public Customer authenticateCustomer(String mobileNumber, String password) {
+        Customer customer = customerRepository.findByMobileNumber(mobileNumber)
+                .orElseThrow(() -> new RuntimeException("Customer not registered. Please sign up first."));
+        if (customer.getPassword() == null || !customer.getPassword().equals(password)) {
+            throw new RuntimeException("Incorrect password. Please try again.");
+        }
+        return customer;
     }
 
     public void addReferral(String referrerMobile, String referredMobile) {

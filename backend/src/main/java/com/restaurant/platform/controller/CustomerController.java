@@ -20,20 +20,34 @@ public class CustomerController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
-        String name = request.get("name");
         String mobile = request.get("mobileNumber");
-        String referrerMobile = request.get("referrerMobile");
+        String password = request.get("password");
 
-        if (mobile == null) {
-            return ResponseEntity.badRequest().body("Mobile number is required");
+        if (mobile == null || password == null) {
+            return ResponseEntity.badRequest().body("Mobile number and password are required");
         }
 
         try {
-            Customer customer = customerService.getOrCreateCustomer(
-                    name != null ? name : "Walk-in Customer", 
-                    mobile, 
-                    referrerMobile
-            );
+            Customer customer = customerService.authenticateCustomer(mobile, password);
+            return ResponseEntity.ok(customer);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@RequestBody Map<String, String> request) {
+        String name = request.get("name");
+        String mobile = request.get("mobileNumber");
+        String password = request.get("password");
+        String referrerMobile = request.get("referrerMobile");
+
+        if (name == null || mobile == null || password == null) {
+            return ResponseEntity.badRequest().body("Name, mobile number, and password are required");
+        }
+
+        try {
+            Customer customer = customerService.registerCustomer(name, mobile, password, referrerMobile);
             return ResponseEntity.ok(customer);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());

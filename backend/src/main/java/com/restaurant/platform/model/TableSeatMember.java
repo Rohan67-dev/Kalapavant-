@@ -2,6 +2,7 @@ package com.restaurant.platform.model;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "table_seat_members", uniqueConstraints = {
@@ -28,4 +29,6 @@ public class TableSeatMember {
 
     @Column(nullable = false)
     private String mobileNumber;
+
+    private LocalDateTime entryTime;
 }

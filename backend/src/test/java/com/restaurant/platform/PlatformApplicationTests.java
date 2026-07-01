@@ -80,7 +80,7 @@ class PlatformApplicationTests {
         String customerMobile = "9876543200";
         String referrerMobile = "9876543201";
 
-        Customer referrer = customerService.getOrCreateCustomer("Referrer Guy", referrerMobile, null);
+        Customer referrer = customerService.getOrCreateCustomer("Referrer Guy", referrerMobile, null, null);
         assertNotNull(referrer.getId());
         assertEquals(0, referrer.getReferralHistory().size());
 
@@ -89,7 +89,7 @@ class PlatformApplicationTests {
         assertEquals(1, referrer.getVisitCount());
         assertEquals(0.0, referrer.getDiscountsEarned());
 
-        Customer guest = customerService.getOrCreateCustomer("New Guest", customerMobile, referrerMobile);
+        Customer guest = customerService.getOrCreateCustomer("New Guest", customerMobile, null, referrerMobile);
         assertEquals(10.0, guest.getDiscountsEarned());
 
         referrer = customerService.findById(referrer.getId()).orElseThrow();
@@ -115,7 +115,7 @@ class PlatformApplicationTests {
 
     @Test
     void testSrosSeatingAndCleaningLocks() {
-        Customer customer = customerService.getOrCreateCustomer("Bob Clean", "9222222222", null);
+        Customer customer = customerService.getOrCreateCustomer("Bob Clean", "9222222222", null, null);
         
         // Mark table as CLEANING_REQUIRED
         tableService.updateTableStatus(testTable.getId(), TableStatus.CLEANING_REQUIRED, null);
@@ -146,7 +146,7 @@ class PlatformApplicationTests {
 
     @Test
     void testSrosItemLevelCancellationAndLocks() {
-        Customer customer = customerService.getOrCreateCustomer("Alice Sros", "9333333333", null);
+        Customer customer = customerService.getOrCreateCustomer("Alice Sros", "9333333333", null, null);
         tableService.completeCleaning(testTable.getId());
         tableService.checkIn(testTable.getTableNumber(), customer);
 

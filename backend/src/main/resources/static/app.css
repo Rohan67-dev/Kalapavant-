@@ -191,7 +191,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Forms */
 .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
 .form-group label { font-size: 13px; color: var(--color-text-muted); }
-input[type="text"], input[type="tel"], input[type="number"], select {
+input[type="text"], input[type="tel"], input[type="number"], input[type="password"], select {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid var(--border-color);
     padding: 10px 14px;
@@ -1103,3 +1103,164 @@ input:focus, select:focus {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* Unified login/signup tabbed system */
+.login-tabs {
+    display: flex;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--border-color);
+}
+.login-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 16px 20px;
+    color: var(--color-text-muted);
+    font-family: var(--font-heading);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    border-bottom: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.login-tab-btn:hover {
+    color: var(--color-text-main);
+    background: rgba(255, 255, 255, 0.02);
+}
+.login-tab-btn.active {
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+    background: rgba(6, 182, 212, 0.05);
+}
+.form-group-title {
+    margin-top: 10px;
+    margin-bottom: 5px;
+}
+.login-form-box {
+    animation: fadeIn 0.3s ease-out;
+}
+.login-form-box h4 {
+    font-size: 18px;
+    margin-bottom: 5px;
+    font-family: var(--font-heading);
+    color: var(--color-text-main);
+}
+.login-form-box p {
+    margin-bottom: 20px;
+}
+
+/* Premium Glowing Buttons Redesign */
+.btn-premium {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary)) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(168, 85, 247, 0.25) !important;
+    backdrop-filter: blur(4px);
+    transition: var(--transition-smooth) !important;
+    position: relative;
+    overflow: hidden;
+}
+.btn-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: all 0.6s ease;
+}
+.btn-premium:hover:not(:disabled)::before {
+    left: 100%;
+}
+.btn-premium:hover:not(:disabled) {
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.4), 0 0 15px rgba(6, 182, 212, 0.25) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    transform: translateY(-2px);
+}
+.btn-premium:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Light Theme Variables Overrides */
+body.light-theme {
+    --bg-base: #f8fafc;
+    --bg-surface: #ffffff;
+    --bg-card: rgba(255, 255, 255, 0.7);
+    --border-color: rgba(15, 23, 42, 0.08);
+    
+    --color-text-main: #0f172a;
+    --color-text-muted: #64748b;
+    
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 10px 30px rgba(15, 23, 42, 0.08);
+    --shadow-glow: 0 0 15px rgba(6, 182, 212, 0.15);
+}
+
+body.light-theme .parallax-overlay {
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.2) 0%, rgba(248, 250, 252, 0.95) 100%);
+}
+body.light-theme .hygiene-banner {
+    background-color: #f1f5f9;
+}
+body.light-theme .menu-showcase-section {
+    background: linear-gradient(to bottom, var(--bg-base) 0%, #f1f5f9 100%);
+}
+body.light-theme .sig-card {
+    background: rgba(0, 0, 0, 0.015);
+}
+body.light-theme input, body.light-theme select {
+    background: rgba(15, 23, 42, 0.03);
+    color: #0f172a;
+}
+body.light-theme input:focus, body.light-theme select:focus {
+    background: #ffffff;
+}
+body.light-theme .login-card {
+    background: rgba(255, 255, 255, 0.75);
+}
+body.light-theme .login-tabs {
+    background: rgba(15, 23, 42, 0.02);
+}
+body.light-theme .login-tab-btn.active {
+    background: rgba(6, 182, 212, 0.05);
+}
+body.light-theme .btn-secondary {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+body.light-theme .btn-secondary:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.06);
+}
+body.light-theme .btn-premium {
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.15) !important;
+}
+
+/* Staff Directory Styles */
+.staff-register-box {
+    display: flex;
+    flex-direction: column;
+}
+.staff-list-box {
+    display: flex;
+    flex-direction: column;
+}
+.staff-reg-role select {
+    width: 100%;
+}
+
+/* Landing Page Top controls positioning */
+.public-top-controls {
+    position: absolute;
+    top: 25px;
+    right: 25px;
+    z-index: 100;
+}
+
+
+

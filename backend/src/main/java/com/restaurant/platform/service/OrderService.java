@@ -56,9 +56,10 @@ public class OrderService {
         for (Order activeOrder : activeOrders) {
             for (OrderItem item : activeOrder.getItems()) {
                 if (item.getStatus() != ItemStatus.READY) {
-                    if (item.getMenuItem().getCategory() == MenuCategory.SABJI) {
+                    MenuCategory cat = item.getMenuItem().getCategory();
+                    if (cat == MenuCategory.SABJI || cat == MenuCategory.SOUP || cat == MenuCategory.STARTER || cat == MenuCategory.RICE || cat == MenuCategory.COMBO) {
                         activeSabjiCount += item.getQuantity();
-                    } else if (item.getMenuItem().getCategory() == MenuCategory.ROTI) {
+                    } else if (cat == MenuCategory.ROTI) {
                         activeRotiCount += item.getQuantity();
                     }
                 }
@@ -67,9 +68,10 @@ public class OrderService {
 
         // Add the new order's items to count
         for (OrderItem item : items) {
-            if (item.getMenuItem().getCategory() == MenuCategory.SABJI) {
+            MenuCategory cat = item.getMenuItem().getCategory();
+            if (cat == MenuCategory.SABJI || cat == MenuCategory.SOUP || cat == MenuCategory.STARTER || cat == MenuCategory.RICE || cat == MenuCategory.COMBO) {
                 activeSabjiCount += item.getQuantity();
-            } else if (item.getMenuItem().getCategory() == MenuCategory.ROTI) {
+            } else if (cat == MenuCategory.ROTI) {
                 activeRotiCount += item.getQuantity();
             }
         }

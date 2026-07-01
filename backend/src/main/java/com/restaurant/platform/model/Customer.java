@@ -23,6 +23,9 @@ public class Customer {
     @Column(nullable = false, unique = true)
     private String mobileNumber;
 
+    @Column(nullable = false)
+    private String password;
+
     @Builder.Default
     private int visitCount = 0;
 
