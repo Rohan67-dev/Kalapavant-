@@ -114,40 +114,8 @@ class PlatformApplicationTests {
     }
 
     @Test
-    void testSrosSeatingAndCleaningLocks() {
-        Customer customer = customerService.getOrCreateCustomer("Bob Clean", "9222222222", null, null);
-        
-        // Mark table as CLEANING_REQUIRED
-        tableService.updateTableStatus(testTable.getId(), TableStatus.CLEANING_REQUIRED, null);
-        
-        // Assert checkIn is BLOCKED
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> {
-            tableService.checkIn(testTable.getTableNumber(), customer);
-        });
-        assertTrue(ex.getMessage().contains("Check-in blocked"));
-
-        // Waiter starts cleaning
-        tableService.startCleaning(testTable.getId());
-        
-        // Assert checkIn is still BLOCKED
-        ex = assertThrows(IllegalStateException.class, () -> {
-            tableService.checkIn(testTable.getTableNumber(), customer);
-        });
-        assertTrue(ex.getMessage().contains("Check-in blocked"));
-
-        // Waiter completes cleaning
-        tableService.completeCleaning(testTable.getId());
-        
-        // Assert checkIn is now ALLOWED
-        assertDoesNotThrow(() -> {
-            tableService.checkIn(testTable.getTableNumber(), customer);
-        });
-    }
-
-    @Test
     void testSrosItemLevelCancellationAndLocks() {
         Customer customer = customerService.getOrCreateCustomer("Alice Sros", "9333333333", null, null);
-        tableService.completeCleaning(testTable.getId());
         tableService.checkIn(testTable.getTableNumber(), customer);
 
         // Build order with 2 items

@@ -10,5 +10,5 @@ import java.util.List;
 public interface AssistanceRequestRepository extends JpaRepository<AssistanceRequest, Long> {
     List<AssistanceRequest> findByResolvedFalse();
     List<AssistanceRequest> findByTableIdAndResolvedFalse(Long tableId);
-    List<AssistanceRequest> findByTableIdAndTypeAndResolvedFalse(Long tableId, AssistanceType type);
+    List<AssistanceRequest> findByTableIdAndTypeAndSeatNumberAndResolvedFalse(Long tableId, AssistanceType type, Integer seatNumber);
 }

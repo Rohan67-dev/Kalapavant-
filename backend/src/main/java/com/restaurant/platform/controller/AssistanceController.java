@@ -23,6 +23,7 @@ public class AssistanceController {
     @PostMapping
     public ResponseEntity<?> createRequest(@RequestBody Map<String, String> request) {
         String tableNumStr = request.get("tableNumber");
+        String seatNumStr = request.get("seatNumber");
         String typeStr = request.get("type");
 
         if (tableNumStr == null || typeStr == null) {
@@ -31,8 +32,9 @@ public class AssistanceController {
 
         try {
             int tableNumber = Integer.parseInt(tableNumStr);
+            Integer seatNumber = (seatNumStr != null && !seatNumStr.isEmpty()) ? Integer.parseInt(seatNumStr) : null;
             AssistanceType type = AssistanceType.valueOf(typeStr.toUpperCase());
-            AssistanceRequest assistanceRequest = assistanceService.createRequest(tableNumber, type);
+            AssistanceRequest assistanceRequest = assistanceService.createRequest(tableNumber, type, seatNumber);
             return ResponseEntity.ok(assistanceRequest);
         } catch (NumberFormatException e) {
             return ResponseEntity.badRequest().body("Invalid table number format");

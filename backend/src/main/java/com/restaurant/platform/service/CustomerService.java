@@ -22,6 +22,11 @@ public class CustomerService {
     }
 
     public Customer getOrCreateCustomer(String name, String mobileNumber, String password, String referrerMobile) {
+        String email = mobileNumber + "@kalapavant.com";
+        return getOrCreateCustomer(name, mobileNumber, email, password, referrerMobile);
+    }
+
+    public Customer getOrCreateCustomer(String name, String mobileNumber, String email, String password, String referrerMobile) {
         Optional<Customer> existing = customerRepository.findByMobileNumber(mobileNumber);
         
         if (existing.isPresent()) {
@@ -32,6 +37,7 @@ public class CustomerService {
         Customer customer = Customer.builder()
                 .name(name)
                 .mobileNumber(mobileNumber)
+                .email(email)
                 .password(password != null ? password : "0000")
                 .visitCount(0) // First visit
                 .referralHistory(new ArrayList<>())
@@ -51,11 +57,20 @@ public class CustomerService {
     }
 
     public Customer registerCustomer(String name, String mobileNumber, String password, String referrerMobile) {
+        String email = mobileNumber + "@kalapavant.com";
+        return registerCustomer(name, mobileNumber, email, password, referrerMobile);
+    }
+
+    public Customer registerCustomer(String name, String mobileNumber, String email, String password, String referrerMobile) {
         Optional<Customer> existing = customerRepository.findByMobileNumber(mobileNumber);
         if (existing.isPresent()) {
             throw new RuntimeException("Customer already registered with this mobile number. Please log in instead.");
         }
-        return getOrCreateCustomer(name, mobileNumber, password, referrerMobile);
+        Optional<Customer> existingEmail = customerRepository.findByEmail(email);
+        if (existingEmail.isPresent()) {
+            throw new RuntimeException("Customer already registered with this email address. Please log in instead.");
+        }
+        return getOrCreateCustomer(name, mobileNumber, email, password, referrerMobile);
     }
 
     public Customer authenticateCustomer(String mobileNumber, String password) {
@@ -120,6 +135,10 @@ public class CustomerService {
 
     public Optional<Customer> findByMobileNumber(String mobileNumber) {
         return customerRepository.findByMobileNumber(mobileNumber);
+    }
+
+    public Optional<Customer> findByEmail(String email) {
+        return customerRepository.findByEmail(email);
     }
 
     public Optional<Customer> findById(Long id) {

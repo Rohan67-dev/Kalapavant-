@@ -48,6 +48,8 @@ public class StaffController {
         }
 
         try {
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobile);
             StaffMember staff = staffService.createStaffMember(name, mobile, password, role);
             return ResponseEntity.ok(staff);
         } catch (Exception e) {

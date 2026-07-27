@@ -16,6 +16,8 @@ let assistanceRequests = [];
 let pendingReservations = [];
 let cart = [];                // cart items: { menuItem, quantity, specialInstructions, seatNumber, customerName }
 let pinBuffer = "";           // PIN pad input buffer
+let pendingAuthData = null;   // Pending OTP registration/login data
+let otpTimer = null;          // Interval ID for OTP countdown
 
 // Audio Synthesizer
 let audioCtx = null;
@@ -35,7 +37,7 @@ function playChime(type) {
         
         const now = audioCtx.currentTime;
         
-        if (type === 'waiter') {
+        if (type === 'CALL_WAITER' || type === 'waiter') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(880, now);
             gainNode.gain.setValueAtTime(0.15, now);
@@ -44,6 +46,7 @@ function playChime(type) {
             osc.stop(now + 0.35);
             
             setTimeout(() => {
+                if (!audioCtx) return;
                 const osc2 = audioCtx.createOscillator();
                 const gain2 = audioCtx.createGain();
                 osc2.connect(gain2);
@@ -55,6 +58,59 @@ function playChime(type) {
                 osc2.start(audioCtx.currentTime);
                 osc2.stop(audioCtx.currentTime + 0.45);
             }, 150);
+        } else if (type === 'REQUEST_WATER') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1000, now);
+            gainNode.gain.setValueAtTime(0.12, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+            osc.start(now);
+            osc.stop(now + 0.35);
+            
+            const frequencies = [800, 600, 400];
+            frequencies.forEach((freq, idx) => {
+                setTimeout(() => {
+                    if (!audioCtx) return;
+                    const oscNode = audioCtx.createOscillator();
+                    const gainN = audioCtx.createGain();
+                    oscNode.connect(gainN);
+                    gainN.connect(audioCtx.destination);
+                    oscNode.type = 'sine';
+                    oscNode.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    gainN.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                    gainN.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+                    oscNode.start(audioCtx.currentTime);
+                    oscNode.stop(audioCtx.currentTime + 0.3);
+                }, (idx + 1) * 100);
+            });
+        } else if (type === 'REQUEST_BILL') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(1500, now);
+            gainNode.gain.setValueAtTime(0.15, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+            osc.start(now);
+            osc.stop(now + 0.45);
+            
+            setTimeout(() => {
+                if (!audioCtx) return;
+                const osc2 = audioCtx.createOscillator();
+                const gain2 = audioCtx.createGain();
+                osc2.connect(gain2);
+                gain2.connect(audioCtx.destination);
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(1750, audioCtx.currentTime);
+                gain2.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+                osc2.start(audioCtx.currentTime);
+                osc2.stop(audioCtx.currentTime + 0.45);
+            }, 100);
+        } else if (type === 'CLEAN_TABLE') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(2000, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+            gainNode.gain.setValueAtTime(0.08, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+            osc.start(now);
+            osc.stop(now + 0.6);
         } else if (type === 'priority') {
             osc.type = 'triangle';
             osc.frequency.setValueAtTime(523.25, now);
@@ -96,13 +152,158 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshSystemData();
 });
 
+function setupDateTimePicker(inputId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const minStr = `${year}-${month}-${day}T${hours}:${minutes}`;
+    
+    const maxDate = new Date();
+    maxDate.setDate(now.getDate() + 7);
+    const maxYear = maxDate.getFullYear();
+    const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
+    const maxDay = String(maxDate.getDate()).padStart(2, '0');
+    const maxStr = `${maxYear}-${maxMonth}-${maxDay}T23:59`;
+    
+    input.min = minStr;
+    input.max = maxStr;
+    
+    if (!input.value) {
+        const defaultDate = new Date();
+        defaultDate.setHours(defaultDate.getHours() + 2);
+        defaultDate.setMinutes(0);
+        const defYear = defaultDate.getFullYear();
+        const defMonth = String(defaultDate.getMonth() + 1).padStart(2, '0');
+        const defDay = String(defaultDate.getDate()).padStart(2, '0');
+        const defHours = String(defaultDate.getHours()).padStart(2, '0');
+        const defMinutes = String(defaultDate.getMinutes()).padStart(2, '0');
+        input.value = `${defYear}-${defMonth}-${defDay}T${defHours}:${defMinutes}`;
+    }
+}
+
+function setupInputValidation(inputId, type, isOptional = false) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    
+    let msg = input.parentElement.querySelector(".validation-msg");
+    if (!msg) {
+        msg = document.createElement("div");
+        msg.className = "validation-msg";
+        input.parentElement.appendChild(msg);
+    }
+    
+    function validate() {
+        const val = input.value;
+        let isValid = true;
+        let errorMsg = "";
+        
+        if (isOptional && !val) {
+            msg.style.display = "none";
+            input.style.borderColor = "";
+            return true;
+        }
+        
+        if (type === "name") {
+            if (!val || val.trim().isEmpty) {
+                isValid = false;
+                errorMsg = "Name cannot be empty.";
+            } else if (!/^[a-zA-Z\s]+$/.test(val)) {
+                isValid = false;
+                errorMsg = "Name must only contain alphabetic characters and spaces.";
+            }
+        } else if (type === "mobile") {
+            if (!val) {
+                isValid = false;
+                errorMsg = "Mobile number cannot be empty.";
+            } else if (!/^\d{10}$/.test(val)) {
+                isValid = false;
+                errorMsg = "Mobile number must be exactly 10 digits.";
+            }
+        } else if (type === "date") {
+            if (!val) {
+                isValid = false;
+                errorMsg = "Date and time is required.";
+            } else {
+                const bookingDate = new Date(val);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const maxAllowed = new Date();
+                maxAllowed.setDate(today.getDate() + 7);
+                maxAllowed.setHours(23,59,59,999);
+                
+                if (bookingDate < today) {
+                    isValid = false;
+                    errorMsg = "Reservation date cannot be in the past.";
+                } else if (bookingDate > maxAllowed) {
+                    isValid = false;
+                    errorMsg = "Reservation can only be made up to 7 days in advance.";
+                }
+            }
+        }
+        
+        if (!isValid) {
+            msg.innerText = errorMsg;
+            msg.style.display = "block";
+            input.style.borderColor = "#f43f5e";
+        } else {
+            msg.style.display = "none";
+            input.style.borderColor = "";
+        }
+        return isValid;
+    }
+    
+    input.addEventListener("input", validate);
+    input.addEventListener("change", validate);
+    input.validateField = validate;
+}
+
+function validateFormInputs(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return true;
+    let isFormValid = true;
+    const inputs = form.querySelectorAll("input");
+    inputs.forEach(input => {
+        if (typeof input.validateField === "function") {
+            if (!input.validateField()) {
+                isFormValid = false;
+            }
+        }
+    });
+    return isFormValid;
+}
+
 function initSrosApp() {
+    // Setup inputs validation
+    setupInputValidation("login-mobile", "mobile");
+    setupInputValidation("signup-name", "name");
+    setupInputValidation("signup-mobile", "mobile");
+    setupInputValidation("seating-cust-name", "name");
+    setupInputValidation("seating-cust-mobile", "mobile");
+    setupInputValidation("seating-cust-referrer", "mobile", true);
+    setupInputValidation("staff-reg-name", "name");
+    setupInputValidation("staff-reg-mobile", "mobile");
+    setupInputValidation("sim-book-name", "name");
+    setupInputValidation("sim-book-mobile", "mobile");
+    setupInputValidation("sim-book-time", "date");
+    setupInputValidation("waiter-book-name", "name");
+    setupInputValidation("waiter-book-mobile", "mobile");
+    setupInputValidation("waiter-book-time", "date");
+    
+    setupDateTimePicker("sim-book-time");
+    setupDateTimePicker("waiter-book-time");
+
     // 3D Parallax Scroll Listener
     window.addEventListener("scroll", () => {
         const scrolled = window.scrollY;
         const bgLayer = document.querySelector(".parallax-layer.bg-layer");
         if (bgLayer) {
-            // Translate background layer slowly down to create 3D depth
             bgLayer.style.transform = `translate3d(0, ${scrolled * 0.4}px, -1px) scale(2)`;
         }
     });
@@ -145,11 +346,13 @@ function initSrosApp() {
     // Submit listeners for unified login and signup forms
     document.getElementById("unified-login-form").addEventListener("submit", (e) => {
         e.preventDefault();
+        if (!validateFormInputs("unified-login-form")) return;
         submitUnifiedLogin();
     });
 
     document.getElementById("unified-signup-form").addEventListener("submit", (e) => {
         e.preventDefault();
+        if (!validateFormInputs("unified-signup-form")) return;
         submitUnifiedSignUp();
     });
 
@@ -157,6 +360,7 @@ function initSrosApp() {
     if (seatingForm) {
         seatingForm.addEventListener("submit", (e) => {
             e.preventDefault();
+            if (!validateFormInputs("unified-seating-form")) return;
             submitCustomerSeating();
         });
     }
@@ -165,6 +369,7 @@ function initSrosApp() {
     if (addStaffForm) {
         addStaffForm.addEventListener("submit", (e) => {
             e.preventDefault();
+            if (!validateFormInputs("owner-add-staff-form")) return;
             registerNewStaff();
         });
     }
@@ -196,6 +401,29 @@ function initSrosApp() {
     // Logout from portals
     document.getElementById("btn-sros-logout").addEventListener("click", logoutPortalUser);
 
+    // OTP Modal listeners
+    const otpForm = document.getElementById("otp-verification-form");
+    if (otpForm) {
+        otpForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            verifyOtpCode();
+        });
+    }
+
+    const btnResendOtp = document.getElementById("btn-resend-otp");
+    if (btnResendOtp) {
+        btnResendOtp.addEventListener("click", () => {
+            resendOtpCode();
+        });
+    }
+
+    const btnCancelOtp = document.getElementById("btn-cancel-otp");
+    if (btnCancelOtp) {
+        btnCancelOtp.addEventListener("click", () => {
+            closeOtpModal();
+        });
+    }
+
     // Customer Menu tabs
     document.querySelectorAll(".menu-tab").forEach(tab => {
         tab.addEventListener("click", (e) => {
@@ -220,9 +448,7 @@ function initSrosApp() {
         document.getElementById("waiter-table-inspector").classList.add("hidden");
     });
     document.getElementById("btn-waiter-mark-available").addEventListener("click", () => waiterChangeTableStatus("AVAILABLE"));
-    document.getElementById("btn-waiter-mark-cleaning").addEventListener("click", () => waiterChangeTableStatus("CLEANING_REQUIRED"));
-    document.getElementById("btn-waiter-start-cleaning").addEventListener("click", waiterStartCleaningTable);
-    document.getElementById("btn-waiter-complete-cleaning").addEventListener("click", waiterCompleteCleaningTable);
+    document.getElementById("btn-waiter-place-order-assisted").addEventListener("click", openWaiterAssistedOrderModal);
     document.getElementById("btn-waiter-add-comp-item").addEventListener("click", () => {
         document.getElementById("complimentary-item-modal").classList.remove("hidden");
     });
@@ -249,8 +475,35 @@ function initSrosApp() {
     // Manager reservation simulate form
     document.getElementById("manager-booking-sim-form").addEventListener("submit", (e) => {
         e.preventDefault();
+        if (!validateFormInputs("manager-booking-sim-form")) return;
         simulateManagerReservation();
     });
+
+    // Waiter reservations portal listeners
+    const waiterResForm = document.getElementById("waiter-reservation-form");
+    if (waiterResForm) {
+        waiterResForm.addEventListener("submit", submitWaiterReservation);
+    }
+    const btnWaiterCancelEdit = document.getElementById("btn-waiter-cancel-edit-booking");
+    if (btnWaiterCancelEdit) {
+        btnWaiterCancelEdit.addEventListener("click", cancelWaiterEditBooking);
+    }
+    
+    // Waiter assisted ordering listeners
+    const waiterMenuSearch = document.getElementById("waiter-menu-search");
+    if (waiterMenuSearch) {
+        waiterMenuSearch.addEventListener("input", renderWaiterMenu);
+    }
+    const btnCloseWaiterOrderModal = document.getElementById("btn-close-waiter-order-modal");
+    if (btnCloseWaiterOrderModal) {
+        btnCloseWaiterOrderModal.addEventListener("click", () => {
+            document.getElementById("waiter-order-modal").classList.add("hidden");
+        });
+    }
+    const btnWaiterSubmitOrder = document.getElementById("btn-waiter-submit-order");
+    if (btnWaiterSubmitOrder) {
+        btnWaiterSubmitOrder.addEventListener("click", submitWaiterAssistedOrder);
+    }
 
     // Check session log caches
     const cachedRole = sessionStorage.getItem("sros_role");
@@ -294,13 +547,57 @@ function connectWebSocket() {
     });
 }
 
+function showToastNotification(req) {
+    const container = document.getElementById("toast-container");
+    if (!container) return;
+    
+    const toast = document.createElement("div");
+    toast.className = "toast-card shadow";
+    
+    const seatStr = req.seatNumber ? ` - Seat ${req.seatNumber}` : "";
+    const typeLabel = req.type ? req.type.replace(/_/g, " ") : "ASSISTANCE";
+    
+    toast.innerHTML = `
+        <div class="toast-header">
+            <span class="toast-title"><i class="fa-solid fa-circle-exclamation"></i> Assistance Requested</span>
+            <button class="btn-close" style="font-size:12px; opacity:0.6; background:none; border:none; color:inherit; cursor:pointer;"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="toast-body">
+            <strong>Table ${req.tableNumber}${seatStr}</strong> is requesting <strong>${typeLabel}</strong>.
+        </div>
+        <button class="btn btn-success btn-sm btn-block" style="margin-top:5px;"><i class="fa-solid fa-check"></i> Resolve Request</button>
+    `;
+    
+    toast.querySelector(".toast-header button").onclick = () => {
+        toast.remove();
+    };
+    
+    toast.querySelector(".btn-success").onclick = () => {
+        apiRequest(`/api/assistance/${req.id}/resolve`, { method: 'POST' })
+            .then(() => {
+                toast.remove();
+                refreshAssistanceRequests();
+            })
+            .catch(err => alert("Failed to resolve: " + err.message));
+    };
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+    }, 20000);
+}
+
 function handleIncomingSrosEvent(event) {
     const { type, payload } = event;
     console.log("SROS Event:", type, payload);
 
     if (type === "ASSISTANCE_REQUEST") {
-        playChime('waiter');
+        playChime(payload.type);
         refreshAssistanceRequests();
+        if (authenticatedRole === 'waiter') {
+            showToastNotification(payload);
+        }
     } else if (type === "ORDER_CREATED") {
         if (payload.priority) playChime('priority');
         else playChime('notif');
@@ -335,6 +632,7 @@ function handleIncomingSrosEvent(event) {
         refreshAssistanceRequests();
     } else if (type === "RESERVATION_CREATED" || type === "RESERVATION_UPDATED") {
         if (authenticatedRole === 'manager') refreshManagerDashboard();
+        if (authenticatedRole === 'waiter') loadWaiterReservations();
     } else if (type === "SEAT_UPDATE") {
         if (authenticatedRole === 'waiter' && inspectedTableNum) {
             inspectTableDetails(inspectedTableNum);
@@ -348,6 +646,10 @@ function refreshSystemData() {
     refreshKitchenQueues();
     refreshAssistanceRequests();
     refreshBillingTables();
+    if (authenticatedRole === 'waiter') {
+        loadWaiterReservations();
+        populateWaiterTableDropdown();
+    }
     if (authenticatedRole === 'manager') refreshManagerDashboard();
     if (authenticatedRole === 'owner') renderOwnerPortal();
 }
@@ -378,13 +680,22 @@ function submitUnifiedLogin() {
                     return apiRequest('/api/customers/login', {
                         method: 'POST',
                         body: JSON.stringify({ mobileNumber: mobile, password: password })
-                    }).then(customer => {
-                        currentCustomer = customer;
-                        // Hide login panels
-                        document.getElementById("login-form-wrapper").classList.add("hidden");
-                        document.querySelector(".login-tabs").style.display = "none";
-                        // Show seating step
-                        document.getElementById("seating-step-wrapper").classList.remove("hidden");
+                    }).then(response => {
+                        if (response.status === "OTP_VERIFICATION_PENDING") {
+                            pendingAuthData = {
+                                type: 'login',
+                                mobileNumber: mobile,
+                                email: response.email
+                            };
+                            openOtpModal(response.message);
+                        } else {
+                            currentCustomer = response;
+                            // Hide login panels
+                            document.getElementById("login-form-wrapper").classList.add("hidden");
+                            document.querySelector(".login-tabs").style.display = "none";
+                            // Show seating step
+                            document.getElementById("seating-step-wrapper").classList.remove("hidden");
+                        }
                     });
                 }
             });
@@ -398,6 +709,7 @@ function submitUnifiedLogin() {
 function submitUnifiedSignUp() {
     const name = document.getElementById("signup-name").value.trim();
     const mobile = document.getElementById("signup-mobile").value.trim();
+    const email = document.getElementById("signup-email").value.trim();
     const password = document.getElementById("signup-password").value.trim();
 
     apiRequest('/api/customers/register', {
@@ -405,18 +717,120 @@ function submitUnifiedSignUp() {
         body: JSON.stringify({
             name: name,
             mobileNumber: mobile,
+            email: email,
             password: password
         })
-    }).then(customer => {
-        currentCustomer = customer;
-        
-        // Hide signup panels
-        document.getElementById("signup-form-wrapper").classList.add("hidden");
-        document.querySelector(".login-tabs").style.display = "none";
-        // Show seating step
-        document.getElementById("seating-step-wrapper").classList.remove("hidden");
+    }).then(response => {
+        if (response.status === "OTP_VERIFICATION_PENDING") {
+            pendingAuthData = {
+                type: 'register',
+                name: name,
+                mobileNumber: mobile,
+                email: email,
+                password: password
+            };
+            openOtpModal(response.message);
+        } else {
+            currentCustomer = response;
+            // Hide signup panels
+            document.getElementById("signup-form-wrapper").classList.add("hidden");
+            document.querySelector(".login-tabs").style.display = "none";
+            // Show seating step
+            document.getElementById("seating-step-wrapper").classList.remove("hidden");
+        }
     }).catch(err => {
         alert("Registration failed: " + err.message);
+    });
+}
+
+// OTP modal control & action helpers
+function openOtpModal(message) {
+    document.getElementById("otp-message").innerText = message;
+    document.getElementById("otp-input-code").value = "";
+    document.getElementById("otp-verification-modal").classList.remove("hidden");
+    startOtpCountdown();
+}
+
+function closeOtpModal() {
+    document.getElementById("otp-verification-modal").classList.add("hidden");
+    clearInterval(otpTimer);
+    pendingAuthData = null;
+}
+
+function startOtpCountdown() {
+    let countdown = 60;
+    const timerText = document.getElementById("otp-countdown");
+    const timerWrapper = document.getElementById("otp-timer-wrapper");
+    const resendBtn = document.getElementById("btn-resend-otp");
+
+    timerWrapper.classList.remove("hidden");
+    resendBtn.classList.add("hidden");
+    timerText.innerText = countdown;
+
+    clearInterval(otpTimer);
+    otpTimer = setInterval(() => {
+        countdown--;
+        timerText.innerText = countdown;
+        if (countdown <= 0) {
+            clearInterval(otpTimer);
+            timerWrapper.classList.add("hidden");
+            resendBtn.classList.remove("hidden");
+        }
+    }, 1000);
+}
+
+function verifyOtpCode() {
+    if (!pendingAuthData) return;
+    const otpCode = document.getElementById("otp-input-code").value.trim();
+    if (otpCode.length !== 6) {
+        alert("Please enter a valid 6-digit OTP");
+        return;
+    }
+
+    const payload = {
+        type: pendingAuthData.type,
+        otpCode: otpCode,
+        mobileNumber: pendingAuthData.mobileNumber,
+        email: pendingAuthData.email,
+        name: pendingAuthData.name,
+        password: pendingAuthData.password
+    };
+
+    apiRequest('/api/customers/verify-otp', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    }).then(customer => {
+        currentCustomer = customer;
+        closeOtpModal();
+        
+        // Hide login and signup forms
+        document.getElementById("login-form-wrapper").classList.add("hidden");
+        document.getElementById("signup-form-wrapper").classList.add("hidden");
+        document.querySelector(".login-tabs").style.display = "none";
+        
+        // Show seating step
+        document.getElementById("seating-step-wrapper").classList.remove("hidden");
+        
+        alert("Authentication successful!");
+    }).catch(err => {
+        alert("Verification failed: " + err.message);
+    });
+}
+
+function resendOtpCode() {
+    if (!pendingAuthData) return;
+
+    apiRequest('/api/customers/resend-otp', {
+        method: 'POST',
+        body: JSON.stringify({
+            mobileNumber: pendingAuthData.mobileNumber,
+            email: pendingAuthData.email
+        })
+    }).then(response => {
+        alert("A new OTP has been sent successfully!");
+        startOtpCountdown();
+    }).catch(err => {
+        alert("Failed to resend OTP: " + err.message);
     });
 }
 
@@ -519,6 +933,12 @@ function logoutPortalUser() {
     currentOrder = null;
     authenticatedRole = null;
     cart = [];
+    
+    // Clear active tracker UI
+    const trackerContainer = document.getElementById("tracker-order-items-container");
+    if (trackerContainer) trackerContainer.innerHTML = "";
+    const activeLabel = document.getElementById("active-order-id-label");
+    if (activeLabel) activeLabel.innerText = "";
     
     // Reset forms
     const loginForm = document.getElementById("unified-login-form");
@@ -742,11 +1162,13 @@ function submitCustomerCartOrder() {
 }
 
 function fetchCustomerActiveOrders() {
-    fetch(`/api/orders/table/${currentTable}`)
+    if (!currentCustomer) return;
+    fetch(`/api/orders/customer/${currentCustomer.id}`)
         .then(res => res.json())
         .then(orders => {
-            if (orders && orders.length > 0) {
-                currentOrder = orders[orders.length - 1];
+            const activeOrders = orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED');
+            if (activeOrders && activeOrders.length > 0) {
+                currentOrder = activeOrders[activeOrders.length - 1];
                 document.getElementById("customer-cart-box").classList.add("hidden");
                 document.getElementById("customer-tracker-box").classList.remove("hidden");
                 renderCustomerTracker();
@@ -858,6 +1280,393 @@ function refreshTablesMatrix(animate = false) {
                 container.appendChild(card);
             });
         });
+}
+
+let waiterReservationsList = [];
+let waiterCart = [];
+
+function populateWaiterTableDropdown() {
+    const select = document.getElementById("waiter-book-table");
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = "";
+    tableList.forEach(t => {
+        const opt = document.createElement("option");
+        opt.value = t.tableNumber;
+        opt.innerText = `Table ${t.tableNumber} (${t.status.replace(/_/g, " ")})`;
+        select.appendChild(opt);
+    });
+    if (currentVal) {
+        select.value = currentVal;
+    }
+}
+
+function loadWaiterReservations() {
+    fetch('/api/reservations')
+        .then(res => res.json())
+        .then(resList => {
+            waiterReservationsList = resList;
+            const body = document.getElementById("waiter-reservations-list-body");
+            if (!body) return;
+            body.innerHTML = "";
+            
+            if (resList.length === 0) {
+                body.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 15px;" class="text-muted">No reservations booked.</td></tr>`;
+                return;
+            }
+            
+            resList.forEach(r => {
+                const tr = document.createElement("tr");
+                tr.style.borderBottom = "1px solid rgba(255, 255, 255, 0.05)";
+                
+                const timeFormatted = r.time ? r.time.replace('T', ' ').substring(0, 16) : "";
+                
+                let actionBtns = "";
+                if (r.status === 'PENDING') {
+                    actionBtns += `<button class="btn btn-success btn-sm" onclick="confirmWaiterBooking(${r.id})" style="margin-right: 5px;"><i class="fa-solid fa-check"></i> Confirm</button>`;
+                }
+                actionBtns += `<button class="btn btn-primary btn-sm" onclick="editWaiterBooking(${r.id})" style="margin-right: 5px;"><i class="fa-solid fa-pen"></i> Edit</button>`;
+                actionBtns += `<button class="btn btn-danger btn-sm" onclick="cancelWaiterBooking(${r.id})"><i class="fa-solid fa-trash"></i> Cancel</button>`;
+                
+                tr.innerHTML = `
+                    <td style="padding: 10px 5px; font-weight:700;">Table ${r.tableNumber}</td>
+                    <td style="padding: 10px 5px;">${r.customerName}</td>
+                    <td style="padding: 10px 5px;">${r.customerMobile}</td>
+                    <td style="padding: 10px 5px;">${timeFormatted}</td>
+                    <td style="padding: 10px 5px;"><span class="badge badge-${r.status === 'CONFIRMED' ? 'success' : (r.status === 'PENDING' ? 'warning' : 'danger')}">${r.status}</span></td>
+                    <td style="padding: 10px 5px; display:flex;">${actionBtns}</td>
+                `;
+                body.appendChild(tr);
+            });
+        });
+}
+
+function confirmWaiterBooking(id) {
+    apiRequest(`/api/reservations/${id}/confirm`, { method: 'POST' })
+        .then(() => {
+            loadWaiterReservations();
+            refreshTablesMatrix();
+            if (authenticatedRole === 'manager') refreshManagerDashboard();
+            alert("Reservation confirmed successfully!");
+        })
+        .catch(err => alert("Confirmation failed: " + err.message));
+}
+
+function cancelWaiterBooking(id) {
+    if (!confirm("Are you sure you want to cancel this reservation?")) return;
+    apiRequest(`/api/reservations/${id}/cancel`, { method: 'POST' })
+        .then(() => {
+            loadWaiterReservations();
+            refreshTablesMatrix();
+            if (authenticatedRole === 'manager') refreshManagerDashboard();
+            alert("Reservation cancelled successfully!");
+        })
+        .catch(err => alert("Cancellation failed: " + err.message));
+}
+
+function editWaiterBooking(id) {
+    const res = waiterReservationsList.find(r => r.id === id);
+    if (!res) return;
+    
+    document.getElementById("waiter-edit-reservation-id").value = res.id;
+    document.getElementById("waiter-book-name").value = res.customerName;
+    document.getElementById("waiter-book-mobile").value = res.customerMobile;
+    document.getElementById("waiter-book-table").value = res.tableNumber;
+    
+    if (res.time) {
+        document.getElementById("waiter-book-time").value = res.time.substring(0, 16);
+    }
+    
+    document.getElementById("waiter-res-form-title").innerText = "Edit Table Reservation";
+    document.getElementById("btn-waiter-submit-booking").innerText = "Update Reservation";
+    document.getElementById("btn-waiter-cancel-edit-booking").classList.remove("hidden");
+    
+    const form = document.getElementById("waiter-reservation-form");
+    if (form) {
+        form.querySelectorAll("input").forEach(i => {
+            if (typeof i.validateField === "function") i.validateField();
+        });
+    }
+    
+    form.scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelWaiterEditBooking() {
+    document.getElementById("waiter-edit-reservation-id").value = "";
+    document.getElementById("waiter-reservation-form").reset();
+    document.getElementById("waiter-res-form-title").innerText = "Book Table";
+    document.getElementById("btn-waiter-submit-booking").innerText = "Create Reservation";
+    document.getElementById("btn-waiter-cancel-edit-booking").classList.add("hidden");
+    
+    const form = document.getElementById("waiter-reservation-form");
+    if (form) {
+        form.querySelectorAll(".validation-msg").forEach(m => m.style.display = "none");
+        form.querySelectorAll("input").forEach(i => i.style.borderColor = "");
+    }
+}
+
+function submitWaiterReservation(e) {
+    e.preventDefault();
+    if (!validateFormInputs("waiter-reservation-form")) return;
+    
+    const id = document.getElementById("waiter-edit-reservation-id").value;
+    const name = document.getElementById("waiter-book-name").value.trim();
+    const mobile = document.getElementById("waiter-book-mobile").value.trim();
+    const table = document.getElementById("waiter-book-table").value;
+    const timeVal = document.getElementById("waiter-book-time").value;
+    const time = timeVal ? timeVal.replace('T', ' ') : "";
+    
+    const bodyObj = {
+        tableNumber: table,
+        customerName: name,
+        customerMobile: mobile,
+        time: time
+    };
+    
+    const url = id ? `/api/reservations/${id}` : '/api/reservations';
+    const method = id ? 'PUT' : 'POST';
+    
+    apiRequest(url, {
+        method: method,
+        body: JSON.stringify(bodyObj)
+    }).then(() => {
+        alert(id ? "Reservation updated successfully!" : "Reservation created successfully!");
+        cancelWaiterEditBooking();
+        loadWaiterReservations();
+        refreshTablesMatrix();
+        if (authenticatedRole === 'manager') refreshManagerDashboard();
+    }).catch(err => {
+        alert("Action failed: " + err.message);
+    });
+}
+
+function openWaiterAssistedOrderModal() {
+    if (!inspectedTableNum) return;
+    const table = tableList.find(t => t.tableNumber === inspectedTableNum);
+    if (!table) return;
+    
+    if (table.status !== 'OCCUPIED' && table.status !== 'BILLING_PENDING') {
+        alert("Please check in a customer to this table first using Seat Guest Assignments!");
+        return;
+    }
+    
+    document.getElementById("waiter-order-table-number").innerText = inspectedTableNum;
+    waiterCart = [];
+    document.getElementById("waiter-order-priority").checked = false;
+    document.getElementById("waiter-order-instructions").value = "";
+    document.getElementById("waiter-seat-selector").value = "0";
+    
+    document.getElementById("waiter-order-modal").classList.remove("hidden");
+    
+    fetch('/api/menu')
+        .then(res => res.json())
+        .then(items => {
+            menuItems = items;
+            
+            const categories = [...new Set(items.map(item => item.category))];
+            const catContainer = document.getElementById("waiter-menu-categories");
+            catContainer.innerHTML = "";
+            
+            const allTab = document.createElement("button");
+            allTab.type = "button";
+            allTab.className = "menu-tab active";
+            allTab.innerText = "ALL";
+            allTab.onclick = () => {
+                document.querySelectorAll("#waiter-menu-categories .menu-tab").forEach(t => t.classList.remove("active"));
+                allTab.classList.add("active");
+                renderWaiterMenu();
+            };
+            catContainer.appendChild(allTab);
+            
+            categories.forEach(cat => {
+                const tab = document.createElement("button");
+                tab.type = "button";
+                tab.className = "menu-tab";
+                tab.innerText = cat;
+                tab.onclick = () => {
+                    document.querySelectorAll("#waiter-menu-categories .menu-tab").forEach(t => t.classList.remove("active"));
+                    tab.classList.add("active");
+                    renderWaiterMenu();
+                };
+                catContainer.appendChild(tab);
+            });
+            
+            renderWaiterMenu();
+            renderWaiterCart();
+        });
+}
+
+function renderWaiterMenu() {
+    const grid = document.getElementById("waiter-dishes-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    
+    const activeTab = document.querySelector("#waiter-menu-categories .menu-tab.active");
+    const activeCategory = activeTab ? activeTab.innerText : "ALL";
+    const searchVal = document.getElementById("waiter-menu-search").value.toLowerCase().trim();
+    
+    const filtered = menuItems.filter(item => {
+        const matchesCategory = (activeCategory === "ALL" || item.category === activeCategory);
+        const matchesSearch = item.name.toLowerCase().includes(searchVal);
+        return matchesCategory && matchesSearch;
+    });
+    
+    if (filtered.length === 0) {
+        grid.innerHTML = `<p class="empty-message" style="grid-column: 1/-1;">No dishes found.</p>`;
+        return;
+    }
+    
+    filtered.forEach(item => {
+        const card = document.createElement("div");
+        card.className = "menu-card";
+        card.style.display = "flex";
+        card.style.flexDirection = "column";
+        card.style.justifyContent = "space-between";
+        card.style.padding = "10px";
+        card.style.borderRadius = "8px";
+        card.style.background = "rgba(255, 255, 255, 0.05)";
+        card.style.border = "1px solid rgba(255, 255, 255, 0.1)";
+        
+        const priceLabel = item.chargeable ? `₹${item.price}` : "FREE";
+        
+        card.innerHTML = `
+            <div>
+                <strong style="font-size:13px; display:block; color:var(--color-text-main);">${item.name}</strong>
+                <span class="text-muted" style="font-size:10px;">Category: ${item.category}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                <span style="font-weight:700; color:var(--color-primary); font-size:13px;">${priceLabel}</span>
+                <button type="button" class="btn btn-primary btn-sm" onclick="addDishToWaiterCart(${item.id})"><i class="fa-solid fa-plus"></i> Add</button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+function addDishToWaiterCart(itemId) {
+    const item = menuItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    const seatSelector = document.getElementById("waiter-seat-selector");
+    const seatNumber = parseInt(seatSelector.value);
+    
+    const existing = waiterCart.find(c => c.menuItem.id === itemId && c.seatNumber === seatNumber);
+    if (existing) {
+        existing.quantity++;
+    } else {
+        waiterCart.push({
+            menuItem: item,
+            quantity: 1,
+            seatNumber: seatNumber
+        });
+    }
+    renderWaiterCart();
+}
+
+function renderWaiterCart() {
+    const list = document.getElementById("waiter-cart-items-list");
+    if (!list) return;
+    list.innerHTML = "";
+    
+    if (waiterCart.length === 0) {
+        list.innerHTML = `<p class="empty-message">Cart is empty.</p>`;
+        document.getElementById("waiter-cart-total").innerText = "₹0.00";
+        return;
+    }
+    
+    let total = 0;
+    waiterCart.forEach((c, idx) => {
+        const itemTotal = c.menuItem.chargeable ? (c.menuItem.price * c.quantity) : 0;
+        total += itemTotal;
+        
+        const seatLabel = c.seatNumber > 0 ? `(Seat ${c.seatNumber})` : `(Table)`;
+        
+        const div = document.createElement("div");
+        div.style.display = "flex";
+        div.style.flexDirection = "column";
+        div.style.gap = "5px";
+        div.style.padding = "8px";
+        div.style.borderRadius = "6px";
+        div.style.background = "rgba(255, 255, 255, 0.03)";
+        div.style.border = "1px solid rgba(255, 255, 255, 0.05)";
+        
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:13px; font-weight:600; color:var(--color-text-main);">${c.menuItem.name} <small class="text-primary">${seatLabel}</small></span>
+                <span style="font-size:13px; font-weight:700; color:var(--color-primary);">${c.menuItem.chargeable ? '₹' + itemTotal.toFixed(2) : 'FREE'}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button type="button" class="cart-qty-btn" onclick="changeWaiterCartQty(${idx}, -1)" style="width:24px; height:24px; font-size:10px;"><i class="fa-solid fa-minus"></i></button>
+                    <span style="font-size:13px; font-weight:700;">${c.quantity}</span>
+                    <button type="button" class="cart-qty-btn" onclick="changeWaiterCartQty(${idx}, 1)" style="width:24px; height:24px; font-size:10px;"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <button type="button" class="btn btn-danger btn-sm" onclick="removeWaiterCartItem(${idx})" style="padding: 2px 6px; font-size: 11px;"><i class="fa-solid fa-trash"></i> Remove</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+    
+    document.getElementById("waiter-cart-total").innerText = `₹${total.toFixed(2)}`;
+}
+
+function changeWaiterCartQty(idx, change) {
+    if (waiterCart[idx]) {
+        waiterCart[idx].quantity += change;
+        if (waiterCart[idx].quantity <= 0) {
+            waiterCart.splice(idx, 1);
+        }
+        renderWaiterCart();
+    }
+}
+
+function removeWaiterCartItem(idx) {
+    waiterCart.splice(idx, 1);
+    renderWaiterCart();
+}
+
+function submitWaiterAssistedOrder() {
+    if (waiterCart.length === 0) {
+        alert("Your cart is empty. Please add some dishes first.");
+        return;
+    }
+    const table = tableList.find(t => t.tableNumber === inspectedTableNum);
+    if (!table) return;
+    if (!table.currentCustomer) {
+        alert("No guest is currently assigned to this table. Please seat a guest first.");
+        return;
+    }
+    
+    const isPriority = document.getElementById("waiter-order-priority").checked;
+    const specialInstructions = document.getElementById("waiter-order-instructions").value;
+    
+    const requestItems = waiterCart.map(c => {
+        return {
+            menuItemId: c.menuItem.id,
+            quantity: c.quantity,
+            specialInstructions: specialInstructions,
+            seatNumber: c.seatNumber > 0 ? c.seatNumber : null,
+            customerName: table.currentCustomer.name
+        };
+    });
+    
+    apiRequest('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify({
+            tableId: table.id,
+            customerId: table.currentCustomer.id,
+            isPriority: isPriority,
+            items: requestItems
+        })
+    }).then(order => {
+        alert("Order placed successfully on behalf of guest!");
+        document.getElementById("waiter-order-modal").classList.add("hidden");
+        waiterCart = [];
+        inspectTableDetails(inspectedTableNum);
+        refreshKitchenQueues();
+    }).catch(err => {
+        alert("Assisted order placement failed: " + err.message);
+    });
 }
 
 function inspectTableDetails(tableNumber) {
@@ -973,27 +1782,7 @@ function waiterChangeTableStatus(status) {
     });
 }
 
-function waiterStartCleaningTable() {
-    if (!inspectedTableNum) return;
-    const table = tableList.find(t => t.tableNumber === inspectedTableNum);
-    
-    apiRequest(`/api/tables/${table.id}/start-cleaning`, {
-        method: 'POST'
-    }).then(() => {
-        inspectTableDetails(inspectedTableNum);
-    });
-}
 
-function waiterCompleteCleaningTable() {
-    if (!inspectedTableNum) return;
-    const table = tableList.find(t => t.tableNumber === inspectedTableNum);
-    
-    apiRequest(`/api/tables/${table.id}/complete-cleaning`, {
-        method: 'POST'
-    }).then(() => {
-        inspectTableDetails(inspectedTableNum);
-    });
-}
 
 function cancelOrderWaiter(orderId) {
     if (!confirm("Cancel this entire ticket?")) return;
@@ -1612,47 +2401,14 @@ function refreshManagerDashboard(animate = false) {
                 container.appendChild(ticket);
             });
         });
-
-    // 2. Fetch tables in cleaning required state
-    fetch('/api/tables')
-        .then(res => res.json())
-        .then(tables => {
-            const container = document.getElementById("manager-cleaning-alerts-container");
-            container.innerHTML = "";
-            
-            let cleaningAlertsCount = 0;
-            tables.forEach(t => {
-                if (t.status === 'CLEANING_REQUIRED' || t.status === 'CLEANING_IN_PROGRESS') {
-                    cleaningAlertsCount++;
-                    const row = document.createElement("div");
-                    row.className = "cleaning-alert-item";
-                    
-                    let cleanActionBtn = "";
-                    if (t.status === 'CLEANING_REQUIRED') {
-                        cleanActionBtn = `<button class="btn btn-primary btn-sm" onclick="startTableCleaning(${t.id})"><i class="fa-solid fa-soap"></i> Assign Cleaning</button>`;
-                    } else {
-                        cleanActionBtn = `<button class="btn btn-success btn-sm" onclick="completeTableCleaning(${t.id})"><i class="fa-solid fa-circle-check"></i> Complete</button>`;
-                    }
-                    
-                    row.innerHTML = `
-                        <span><strong>Table ${t.tableNumber}</strong> requires cleaning (${t.status.replace(/_/g, " ")})</span>
-                        ${cleanActionBtn}
-                    `;
-                    container.appendChild(row);
-                }
-            });
-            
-            if (cleaningAlertsCount === 0) {
-                container.innerHTML = "<p class='empty-message'>No tables in cleaning queue currently.</p>";
-            }
-        });
 }
 
 function simulateManagerReservation() {
     const name = document.getElementById("sim-book-name").value;
     const mobile = document.getElementById("sim-book-mobile").value;
     const table = document.getElementById("sim-book-table").value;
-    const time = document.getElementById("sim-book-time").value;
+    const timeVal = document.getElementById("sim-book-time").value;
+    const time = timeVal ? timeVal.replace('T', ' ') : "";
     
     apiRequest('/api/reservations', {
         method: 'POST',
@@ -1691,12 +2447,7 @@ function cancelManagerBooking(id) {
     });
 }
 
-function startTableCleaning(tableId) {
-    apiRequest(`/api/tables/${tableId}/start-cleaning`, { method: 'POST' }).then(() => refreshManagerDashboard());
-}
-function completeTableCleaning(tableId) {
-    apiRequest(`/api/tables/${tableId}/complete-cleaning`, { method: 'POST' }).then(() => refreshManagerDashboard());
-}
+
 
 
 // ----------------------------------------------------
@@ -1919,3 +2670,19 @@ function toggleRefreshSpin(portal) {
         }
     }
 }
+
+function resetDatabase() {
+    if (!confirm("Are you sure you want to completely reset the system? This will delete all orders, customer accounts, and clear all seated guests.")) {
+        return;
+    }
+    
+    apiRequest('/api/admin/reset', {
+        method: 'POST'
+    }).then(res => {
+        alert(res.message || "Database successfully reset!");
+        location.reload();
+    }).catch(err => {
+        alert("Failed to reset database: " + err.message);
+    });
+}
+

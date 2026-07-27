@@ -32,10 +32,8 @@ public class ReservationService {
         RestaurantTable table = tableRepository.findByTableNumber(tableNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableNumber));
 
-        if (table.getStatus() == TableStatus.CLEANING_REQUIRED ||
-            table.getStatus() == TableStatus.CLEANING_IN_PROGRESS ||
-            table.getStatus() == TableStatus.OUT_OF_SERVICE) {
-            throw new IllegalStateException("Reservation blocked: Table is currently in cleaning or out of service.");
+        if (table.getStatus() == TableStatus.OUT_OF_SERVICE) {
+            throw new IllegalStateException("Reservation blocked: Table is currently out of service.");
         }
 
         Customer customer = customerService.getOrCreateCustomer(customerName, customerMobile, null, null);
@@ -49,6 +47,35 @@ public class ReservationService {
 
         Reservation saved = reservationRepository.save(reservation);
         webSocketService.sendUpdate("RESERVATION_CREATED", saved);
+        return saved;
+    }
+
+    public Reservation updateReservation(Long id, int tableNumber, String customerName, String customerMobile, LocalDateTime time) {
+        Reservation reservation = reservationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Reservation not found: " + id));
+
+        RestaurantTable table = tableRepository.findByTableNumber(tableNumber)
+                .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableNumber));
+
+        if (table.getStatus() == TableStatus.OUT_OF_SERVICE) {
+            throw new IllegalStateException("Selected table is out of service.");
+        }
+
+        // If the table is being changed, make sure the new table is available
+        if (reservation.getTable().getTableNumber() != tableNumber) {
+            if (table.getStatus() != TableStatus.AVAILABLE) {
+                throw new IllegalStateException("Selected table is not available.");
+            }
+        }
+
+        Customer customer = customerService.getOrCreateCustomer(customerName, customerMobile, null, null);
+
+        reservation.setTable(table);
+        reservation.setCustomer(customer);
+        reservation.setReservationTime(time);
+
+        Reservation saved = reservationRepository.save(reservation);
+        webSocketService.sendUpdate("RESERVATION_UPDATED", saved);
         return saved;
     }
 

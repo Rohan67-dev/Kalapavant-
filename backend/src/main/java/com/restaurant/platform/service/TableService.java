@@ -61,11 +61,9 @@ public class TableService {
                 .orElseThrow(() -> new IllegalArgumentException("Table not found with id: " + tableId));
         
         table.setStatus(status);
-        if (status == TableStatus.AVAILABLE || status == TableStatus.CLEANING_REQUIRED || status == TableStatus.CLEANING_IN_PROGRESS) {
+        if (status == TableStatus.AVAILABLE) {
             table.setCurrentCustomer(null);
-            if (status == TableStatus.AVAILABLE) {
-                seatMemberRepository.deleteByTableId(tableId);
-            }
+            seatMemberRepository.deleteByTableId(tableId);
         } else if (customer != null) {
             table.setCurrentCustomer(customer);
         }
@@ -95,10 +93,8 @@ public class TableService {
         RestaurantTable table = tableRepository.findByTableNumber(tableNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableNumber));
         
-        if (table.getStatus() == TableStatus.CLEANING_REQUIRED || 
-            table.getStatus() == TableStatus.CLEANING_IN_PROGRESS || 
-            table.getStatus() == TableStatus.OUT_OF_SERVICE) {
-            throw new IllegalStateException("Check-in blocked: Table must be cleaned before check-in.");
+        if (table.getStatus() == TableStatus.OUT_OF_SERVICE) {
+            throw new IllegalStateException("Check-in blocked: Table is out of service.");
         }
 
         table.setStatus(TableStatus.OCCUPIED);
@@ -138,24 +134,4 @@ public class TableService {
         return seatMemberRepository.findByTableId(tableId);
     }
 
-    // SROS Cleaning Lifecycle
-    public RestaurantTable startCleaning(Long tableId) {
-        RestaurantTable table = tableRepository.findById(tableId)
-                .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableId));
-        table.setStatus(TableStatus.CLEANING_IN_PROGRESS);
-        RestaurantTable saved = tableRepository.save(table);
-        webSocketService.sendUpdate("TABLE_UPDATE", saved);
-        return saved;
-    }
-
-    public RestaurantTable completeCleaning(Long tableId) {
-        RestaurantTable table = tableRepository.findById(tableId)
-                .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableId));
-        table.setStatus(TableStatus.AVAILABLE);
-        table.setCurrentCustomer(null);
-        seatMemberRepository.deleteByTableId(tableId);
-        RestaurantTable saved = tableRepository.save(table);
-        webSocketService.sendUpdate("TABLE_UPDATE", saved);
-        return saved;
-    }
 }

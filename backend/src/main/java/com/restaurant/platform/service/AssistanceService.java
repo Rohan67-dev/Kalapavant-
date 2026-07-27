@@ -28,12 +28,12 @@ public class AssistanceService {
         this.webSocketService = webSocketService;
     }
 
-    public AssistanceRequest createRequest(int tableNumber, AssistanceType type) {
+    public AssistanceRequest createRequest(int tableNumber, AssistanceType type, Integer seatNumber) {
         RestaurantTable table = tableRepository.findByTableNumber(tableNumber)
                 .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableNumber));
 
-        // Check if there is an unresolved request of the same type for this table
-        List<AssistanceRequest> existing = requestRepository.findByTableIdAndTypeAndResolvedFalse(table.getId(), type);
+        // Check if there is an unresolved request of the same type for this table/seat
+        List<AssistanceRequest> existing = requestRepository.findByTableIdAndTypeAndSeatNumberAndResolvedFalse(table.getId(), type, seatNumber);
         if (!existing.isEmpty()) {
             return existing.get(0);
         }
@@ -41,12 +41,13 @@ public class AssistanceService {
         AssistanceRequest request = AssistanceRequest.builder()
                 .table(table)
                 .type(type)
+                .seatNumber(seatNumber)
                 .timestamp(LocalDateTime.now())
                 .resolved(false)
                 .build();
 
         // If it's a bill request, update table status to BILLING_PENDING
-        if (type == AssistanceType.BILL) {
+        if (type == AssistanceType.REQUEST_BILL) {
             table.setStatus(TableStatus.BILLING_PENDING);
             tableRepository.save(table);
             webSocketService.sendUpdate("TABLE_UPDATE", table);

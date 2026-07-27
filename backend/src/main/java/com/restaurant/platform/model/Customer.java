@@ -24,6 +24,9 @@ public class Customer {
     private String mobileNumber;
 
     @Column(nullable = false)
+    private String email;
+
+    @Column(nullable = false)
     private String password;
 
     @Builder.Default

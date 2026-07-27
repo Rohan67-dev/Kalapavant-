@@ -24,6 +24,9 @@ public class AssistanceRequest {
     @Column(nullable = false)
     private AssistanceType type;
 
+    @Column(nullable = true)
+    private Integer seatNumber;
+
     @Builder.Default
     private boolean resolved = false;
 

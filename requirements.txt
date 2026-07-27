@@ -1,0 +1,16 @@
+# Kalapavant Platform Requirements & Run Instructions
+# ===================================================
+# This is a multi-service project containing:
+# 1. Java Spring Boot Backend (Port 8080)
+# 2. Python Flask AI Service (Port 5000)
+#
+# --- Python AI Service Dependencies ---
+# Install using: pip install -r requirements.txt
+# Or run `./run_project.sh` to automatically set up everything.
+
+Flask==3.0.3
+requests==2.32.3
+
+# --- Java Backend Requirements ---
+# 1. JDK 17 or higher (System defaults to JDK 25)
+# 2. Maven (bundled via mvnw wrapper)

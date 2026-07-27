@@ -49,6 +49,11 @@ public class TableController {
         }
 
         try {
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobileNumber);
+            if (referrerMobile != null && !referrerMobile.isEmpty()) {
+                com.restaurant.platform.util.ValidationUtils.validateMobile(referrerMobile);
+            }
             Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, password, referrerMobile);
             RestaurantTable table = tableService.checkIn(number, customer);
             return ResponseEntity.ok(table);
@@ -67,6 +72,8 @@ public class TableController {
         }
 
         try {
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobileNumber);
             Customer customer = customerService.getOrCreateCustomer(name, mobileNumber, null, null);
             RestaurantTable table = tableService.reserveTable(number, customer);
             return ResponseEntity.ok(table);
@@ -104,6 +111,8 @@ public class TableController {
         }
         
         try {
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobile);
             TableSeatMember member = tableService.assignSeatMember(id, seatNumber, name, mobile);
             return ResponseEntity.ok(member);
         } catch (Exception e) {
@@ -114,26 +123,5 @@ public class TableController {
     @GetMapping("/{id}/seats")
     public List<TableSeatMember> getSeatMembers(@PathVariable Long id) {
         return tableService.getSeatMembers(id);
-    }
-
-    // Cleaning State Lifecycle Controllers
-    @PostMapping("/{id}/start-cleaning")
-    public ResponseEntity<?> startCleaning(@PathVariable Long id) {
-        try {
-            RestaurantTable table = tableService.startCleaning(id);
-            return ResponseEntity.ok(table);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
-    }
-
-    @PostMapping("/{id}/complete-cleaning")
-    public ResponseEntity<?> completeCleaning(@PathVariable Long id) {
-        try {
-            RestaurantTable table = tableService.completeCleaning(id);
-            return ResponseEntity.ok(table);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
     }
 }

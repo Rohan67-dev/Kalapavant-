@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class PlatformApplication {
 
 	public static void main(String[] args) {
+		com.restaurant.platform.util.EnvLoader.loadEnv();
 		SpringApplication.run(PlatformApplication.class, args);
 	}
 

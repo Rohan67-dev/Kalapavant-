@@ -44,7 +44,45 @@ public class ReservationController {
                 time = LocalDateTime.parse(timeStr);
             }
             
+            // Validation
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobile);
+            com.restaurant.platform.util.ValidationUtils.validateReservationDate(time);
+            
             Reservation res = reservationService.createReservation(tableNumber, name, mobile, time);
+            return ResponseEntity.ok(res);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateReservation(@PathVariable Long id, @RequestBody Map<String, String> request) {
+        String tableNumStr = request.get("tableNumber");
+        String name = request.get("customerName");
+        String mobile = request.get("customerMobile");
+        String timeStr = request.get("time");
+
+        if (tableNumStr == null || name == null || mobile == null || timeStr == null) {
+            return ResponseEntity.badRequest().body("tableNumber, customerName, customerMobile, and time are required");
+        }
+
+        try {
+            int tableNumber = Integer.parseInt(tableNumStr);
+            
+            LocalDateTime time;
+            try {
+                time = LocalDateTime.parse(timeStr, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+            } catch (Exception e) {
+                time = LocalDateTime.parse(timeStr);
+            }
+            
+            // Validation
+            com.restaurant.platform.util.ValidationUtils.validateName(name);
+            com.restaurant.platform.util.ValidationUtils.validateMobile(mobile);
+            com.restaurant.platform.util.ValidationUtils.validateReservationDate(time);
+            
+            Reservation res = reservationService.updateReservation(id, tableNumber, name, mobile, time);
             return ResponseEntity.ok(res);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
